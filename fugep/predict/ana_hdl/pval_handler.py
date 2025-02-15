@@ -1,5 +1,5 @@
 """
-Handles computing and outputting the absolute difference scores
+Handles computing and outputting the p-values from t-test across the multiple predictions for each variant effect on sequence activity
 """
 import numpy as np
 from scipy import stats
