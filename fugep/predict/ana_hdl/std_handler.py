@@ -1,5 +1,5 @@
 """
-Handles computing and outputting the absolute difference scores
+Handles computing and outputting the standard deviation of multiple predictions for each sequence input
 """
 import numpy as np
 
