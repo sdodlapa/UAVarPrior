@@ -1,8 +1,3 @@
-'''
-Created on May 28, 2021
-
-@author: jsun
-'''
 
 from abc import ABCMeta
 import os
