@@ -1,0 +1,40 @@
+---
+ops: [analyze]
+model: {
+ #   path: ., # there is no need to specify path for built-in networks under nn pacakge
+    class: DeepSEA,
+    classArgs: {  # DeeperDeepSEA.__init__ inputs
+        sequence_length: 1001,
+        n_targets: 130
+    },
+    built: pytorch,
+    mult_predictions: 3,
+    wrapper: UniSeqMWrapper,
+    non_strand_specific: mean
+}
+analyzer: !obj:fugep.predict.PeakGVarEvaluator {
+    analysis: [mean_gve, pval], #, std], #[diffs, abs_diffs, logits, predictions],
+    vcfFile: /Users/sanjeev/Downloads/debug/fugep/data/samp_vcf_1k.tsv,
+    strandIdx: 5,
+    seqLen: 1001,
+    batchSize: 16,
+    useCuda: False,
+    dataParallel: True,
+    loggingVerbosity: 0,
+    writeMemLimit: 2, # in MB
+    save_mult_pred: False,
+    outputFormat: tsv, #hdf5,
+#    trainedModelPath: /Users/sanjeev/Downloads/debug/fugep/model/kmeans2/checkpoint.pth.tar,
+    trainedModelPath: /Users/sanjeev/Downloads/debug/fugep/model/model/sei.pth,
+    features: !obj:fugep.utils.load_features_list {
+        input_path: /Users/sanjeev/Downloads/debug/fugep/sampler/all-features-kmeans2.txt
+    },
+    refSeq: !obj:fugep.data.Genome {
+        input_path: /Users/sanjeev/Downloads/debug/GRCh38/ensembl/Homo_sapiens.GRCh38.dna.primary_assembly.fa
+    }
+}
+variant_effect_prediction: {}
+output_dir: /Users/sanjeev/Downloads/debug/fugep/gve/kmeans2/
+random_seed: 1447 # seed torch
+create_subdirectory: False
+...

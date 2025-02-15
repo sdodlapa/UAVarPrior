@@ -1,0 +1,2 @@
+[console_scripts]
+fugep = fugep.cli:main

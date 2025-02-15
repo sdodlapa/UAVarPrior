@@ -1,0 +1,55 @@
+---
+ops: [train]
+model: {
+ #   path: ., # there is no need to specify path for built-in networks under nn pacakge
+    class: Sei, #DeeperDeepSEA,
+    classArgs: {  # DeeperDeepSEA.__init__ inputs
+        sequence_length: 4001,
+        n_targets: 72
+    },
+    built: pytorch,
+    mult_predictions: 1,
+    wrapper: UniSeqMWrapper,
+#    non_strand_specific: mean
+}
+sampler: !obj:fugep.samplers.MethylH5Sampler {
+    h5FileDir: /Users/sanjeev/Downloads/debug/fugep/data/temp/4k,
+    train: [c1],
+    validate: [c10],
+    batchSize: 16,
+    test: [chr11],
+    unpackSeq: True,
+    unpackTarget: False,
+    mode: train,
+    weightSampByCls: True,
+    valOfMisInTarget: -1,
+    seed: 1447,
+    nWorkers: 0,
+ #   features: !obj:fugep.utils.load_features_list {
+ #       input_path: /data/hpc/projects/fgenom/ocl/train-data/rmdnase/hg19/debug/h5/data/distinct_features.txt
+ #   }
+}
+train_model: !obj:fugep.train.StandardSGDTrainer {
+    batchSize: 16,
+    maxNSteps: 4,
+    nStepsStatReport: 2,
+    nStepsCheckpoint: 1,
+    transferAndTune: /Users/sanjeev/Downloads/debug/fugep/model/Sei_preTrained/sei.pth,
+#    checkpointResume: /Users/sanjeev/Downloads/debug/fugep/model/sei/checkpoint.pth.tar,
+    newClassifier: True,
+    freezeStem: True,
+    nValidationSamples: 32, # if not specified, all examples from validation set will be used
+    nTestSamples: 32, # if not specified, all examples from test set will be used
+    useCuda: False,
+    dataParallel: True,
+    nMinMinorsReport: 1, # the minimum number of examples of minor class a feature to have to be included in the performance report
+    loggingVerbosity: 2,
+    preloadValData: False,
+    preloadTestData: False,
+}
+
+output_dir: /Users/sanjeev/Downloads/debug/fugep/model/SeiHalf
+random_seed: 1447 # seed torch
+lr: 0.1
+create_subdirectory: False
+...
