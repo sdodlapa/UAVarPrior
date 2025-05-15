@@ -23,7 +23,7 @@ genomic_features_module = Extension(
 ext_modules = [genome_module, genomic_features_module]
 cmdclass = {'build_ext': build_ext}
 
-setup(name="fugep",
+setup(name="uavarprior",
       version="0.4.8",
       long_description=long_description,
       long_description_content_type='text/markdown',
@@ -68,7 +68,7 @@ setup(name="fugep",
       ],
       entry_points={
           'console_scripts': [
-              'fugep = fugep.cli:main',
+              'uavarprior=uavarprior.cli:main',
           ],
       },
       )

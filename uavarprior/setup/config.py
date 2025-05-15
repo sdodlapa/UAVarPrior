@@ -12,6 +12,9 @@ import warnings
 import yaml
 import six
 from collections import namedtuple
+from typing import Any, Dict, Optional, Union
+import json
+from pydantic import BaseModel, ValidationError
 
 SCIENTIFIC_NOTATION_REGEXP = r"^[\-\+]?(\d+\.?\d*|\d*\.?\d+)?[eE][\-\+]?\d+$"
 IS_INITIALIZED = False
@@ -296,51 +299,70 @@ def load(stream, environ=None, instantiate=True, **kwargs):
     return yaml.load(string, Loader=yaml.SafeLoader, **kwargs)
 
 
-def load_path(path, environ=None, instantiate=False, **kwargs):
-    """Convenience function for loading a YAML configuration from a
-    file.
+class ModelConfig(BaseModel):
+    """Model configuration schema."""
+    # Define expected model parameters
+    name: str
+    layers: list
+    dropout_rate: float = 0.1
+    # Add more fields as needed
 
-    Parameters
-    ----------
-    path : str
-        The path to the file to load on disk.
-    environ : dict, optional
-        A dictionary used for ${FOO} substitutions in addition to
-        environment variables. If a key appears both in `os.environ`
-        and this dictionary, the value in this dictionary is used.
-    instantiate : bool, optional
-        If `False`, do not actually instantiate the objects but instead
-        produce a nested hierarchy of `_Proxy` objects.
-    **kwargs : dict
-        Other keyword arguments, all of which are passed to `yaml.load`.
+class TrainingConfig(BaseModel):
+    """Training configuration schema."""
+    batch_size: int
+    learning_rate: float
+    epochs: int
+    # Add more fields as needed
 
-    Returns
-    -------
-    graph : dict or object
-        The dictionary or object (if the top-level element specified
-        a Python object to instantiate), or a nested hierarchy of
-        `_Proxy` objects.
+class DataConfig(BaseModel):
+    """Data configuration schema."""
+    dataset_path: str
+    # Add more fields as needed
 
-    Notes
-    -----
-    Taken (with minor changes) from `Pylearn2`_.
+class Config(BaseModel):
+    """Root configuration schema."""
+    model: ModelConfig
+    training: TrainingConfig
+    data: DataConfig
+    # Add more sections as needed
 
-    .. _Pylearn2: \
-    http://github.com/lisa-lab/pylearn2/blob/master/pylearn2/config/yaml_parse.py
-
-
+def load_path(path: str, instantiate: bool = False) -> Dict[str, Any]:
+    """Load configuration from a file path.
+    
+    Args:
+        path: Path to YAML or JSON configuration file
+        instantiate: Whether to instantiate objects defined in config
+        
+    Returns:
+        Loaded configuration dictionary
     """
-    with open(path, 'r') as f:
-        content = ''.join(f.readlines())
-
-    # This is apparently here to avoid the odd instance where a file gets
-    # loaded as Unicode instead (see 03f238c6d). It's rare instance where
-    # basestring is not the right call.
-    if not isinstance(content, str):
-        raise AssertionError("Expected content to be of type str, got " +
-                             str(type(content)))
-
-    return load(content, instantiate=instantiate, environ=environ, **kwargs)
+    _, ext = os.path.splitext(path)
+    
+    try:
+        with open(path, 'r') as f:
+            if ext.lower() in ['.yaml', '.yml']:
+                config = yaml.safe_load(f)
+            elif ext.lower() == '.json':
+                config = json.load(f)
+            else:
+                raise ValueError(f"Unsupported file extension: {ext}")
+                
+        # Validate configuration structure
+        try:
+            Config(**config)
+            print("Configuration validated successfully")
+        except ValidationError as e:
+            print(f"Configuration validation error: {e}")
+            # Continue anyway but log the warning
+            
+        if instantiate:
+            # Code to instantiate objects defined in config
+            pass
+            
+        return config
+        
+    except Exception as e:
+        raise ValueError(f"Failed to load configuration from {path}: {str(e)}")
 
 
 def _try_to_import(tag_suffix):

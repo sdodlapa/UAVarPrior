@@ -1,5 +1,5 @@
 """
-This is the main module for FuGEP.
+This is the main module for UAVarPrior.
 """
 
 from .version import __version__

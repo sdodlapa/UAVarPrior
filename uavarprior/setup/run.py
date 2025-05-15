@@ -26,6 +26,16 @@ from ..model.nn.utils import load_model, add_output_layers, make_dir
 
 from torch.distributed import init_process_group, destroy_process_group
 from datetime import timedelta
+import logging
+from typing import Dict, Any
+import torch
+
+from uavarprior.models import get_model
+from uavarprior.data import get_dataset, get_dataloader
+from uavarprior.training import Trainer
+
+logger = logging.getLogger(__name__)
+
 def ddp_setup(rank, world_size):
     """
     Args:
@@ -437,105 +447,58 @@ def execute(configs):
                                  'or prediction')
 
 
-def parse_configs_and_run(configs,
-                          create_subdirectory=True,
-                          lr=None):
+def parse_configs_and_run(configs: Dict[str, Any]) -> None:
+    """Parse configuration and run the specified task.
+    
+    Args:
+        configs: Dictionary containing configuration parameters
     """
-    Method to parse the configuration YAML file and run each operation
-    specified.
-
-    Parameters
-    ----------
-    configs : dict
-        The dictionary of nested configuration parameters. Will look
-        for the following top-level parameters:
-
-            * `ops`: A list of 1 or more of the values \
-            {"train", "evaluate", "analyze"}. The operations specified\
-            determine what objects and information we expect to parse\
-            in order to run these operations. This is required.
-            * `output_dir`: Output directory to use for all the operations.\
-            If no `output_dir` is specified, assumes that all constructors\
-            that will be initialized (which have their own configurations\
-            in `configs`) have their own `output_dir` specified.\
-            Optional.
-            * `random_seed`: A random seed set for `torch` and `torch.cuda`\
-            for reproducibility. Optional.
-            * `lr`: The learning rate, if one of the operations in the list is\
-            "train".
-            * `load_test_set`: If `ops: [train, evaluate]`, you may set\
-               this parameter to True if you would like to load the test\
-               set into memory ahead of time--and therefore save the test\
-               data to a .bed file at the start of training. This is only\
-               useful if you have a machine that can support a large increase\
-               (on the order of GBs) in memory usage and if you want to\
-               create a test dataset early-on because you do not know if your\
-               model will finish training and evaluation within the allotted\
-               time that your job is run.
-
-    create_subdirectory : bool, optional
-        Default is True. If `create_subdirectory`, will create a directory
-        within `output_dir` with the name formatted as "%Y-%m-%d-%H-%M-%S",
-        the date/time this method was run.
-    lr : float or None, optional
-        Default is None. If "lr" (learning rate) is already specified as a
-        top-level key in `configs`, there is no need to set `lr` to a value
-        unless you want to override the value in `configs`. Otherwise,
-        set `lr` to the desired learning rate if "train" is one of the
-        operations to be executed.
-
-    Returns
-    -------
-    None
-        Executes the operations listed and outputs any files
-        to the dirs specified in each operation's configuration.
-
-    """
-    # operations = configs["ops"]
-
-    # if "train" in operations and "lr" not in configs and lr != "None":
-    #     configs["lr"] = float(lr)
-    # elif "train" in operations and "lr" in configs and lr != "None":
-    #     print("Warning: learning rate specified in both the "
-    #           "configuration dict and this method's `lr` parameter. "
-    #           "Using the `lr` value input to `parse_configs_and_run` "
-    #           "({0}, not {1}).".format(lr, configs["lr"]))
-
-    ### Create output_dir if not exist
-    current_run_output_dir = None
-    if "output_dir" not in configs and \
-            ("train" in configs["ops"] or "evaluate" in configs["ops"]):
-        print("No top-level output directory specified. All constructors "
-              "to be initialized (e.g. Sampler, TrainModel) that require "
-              "this parameter must have it specified in their individual "
-              "parameter configuration.")
-    elif "output_dir" in configs:
-        current_run_output_dir = configs["output_dir"]
-        os.makedirs(current_run_output_dir, exist_ok=True)
-        if "create_subdirectory" in configs:
-            create_subdirectory = configs["create_subdirectory"]
-        if create_subdirectory:
-            current_run_output_dir = os.path.join(
-                current_run_output_dir, strftime("%Y-%m-%d-%H-%M-%S"))
-            os.makedirs(current_run_output_dir)
-        print("Outputs and logs saved to {0}".format(
-            current_run_output_dir))
-
-    ### Set the random seed
-    if "random_seed" in configs:
-        seed = configs["random_seed"]
-        random.seed(seed)
-        np.random.seed(seed)
-        torch.manual_seed(seed)
-        torch.cuda.manual_seed_all(seed)
-    else:
-        print("Warning: no random seed specified in config file. "
-              "Using a random seed ensures results are reproducible.")
-    for arg in configs.keys():
-        print(f'{arg}: {configs[arg]}')
-
-
-    # world_size = torch.cuda.device_count()
-    # mp.spawn(execute, args=(operations, configs, current_run_output_dir),
-    #          nprocs=world_size, join=True)
-    execute(configs)
+    try:
+        # Check for CUDA availability and set device
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        logger.info(f"Using device: {device}")
+        
+        # Extract key configurations
+        data_config = configs.get("data", {})
+        model_config = configs.get("model", {})
+        training_config = configs.get("training", {})
+        
+        # Initialize dataset
+        logger.info("Initializing dataset...")
+        dataset = get_dataset(data_config)
+        dataloader = get_dataloader(dataset, training_config.get("batch_size", 32))
+        
+        # Initialize model
+        logger.info(f"Initializing model: {model_config.get('name', 'unknown')}")
+        model = get_model(model_config)
+        model.to(device)
+        
+        # Setup training
+        logger.info("Setting up training...")
+        trainer = Trainer(
+            model=model,
+            dataloader=dataloader,
+            config=training_config,
+            device=device
+        )
+        
+        # Run training or inference based on mode
+        mode = configs.get("mode", "train")
+        if mode == "train":
+            logger.info("Starting training...")
+            trainer.train()
+        elif mode == "evaluate":
+            logger.info("Starting evaluation...")
+            trainer.evaluate()
+        elif mode == "predict":
+            logger.info("Starting prediction...")
+            trainer.predict()
+        else:
+            raise ValueError(f"Unknown execution mode: {mode}")
+            
+    except Exception as e:
+        logger.error(f"Execution failed: {str(e)}")
+        if configs.get("debug", False):
+            import traceback
+            traceback.print_exc()
+        raise
