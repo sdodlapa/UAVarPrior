@@ -37,20 +37,32 @@ For collaboration, large files can be shared via:
 2. Institutional file sharing services
 3. Data repositories like Zenodo or Figshare
 
-### Using Git LFS (Optional)
+## Project Structure
 
-For advanced users, Git Large File Storage (LFS) can be used to track large files:
+The project is organized into several modules:
 
+- **data**: For data processing and management
+- **model**: For model definitions and training
+- **interpret**: For result analysis and interpretation
+
+Each module has a `docs` directory with documentation and an `outputs` directory for large files.
+
+## Large File Management
+
+We have implemented a comprehensive system for managing large files:
+
+1. **Output Directories**: Each module has an `outputs` directory for storing large files
+2. **Documentation**: See `uavarprior/*/docs/LARGE_FILES.md` for guidelines
+3. **Utility Script**: Use `scripts/manage_large_files.py` to find and move large files
+
+Example usage:
 ```bash
-# Install Git LFS
-git lfs install
+# Find large files
+python scripts/manage_large_files.py find --threshold 50
 
-# Track large file types
-git lfs track "*.pkl"
-git lfs track "*.parquet.gz"
-
-# Make sure to commit the .gitattributes file
-git add .gitattributes
+# Move large files to appropriate output directories
+python scripts/manage_large_files.py move --threshold 50 --dry-run
+python scripts/manage_large_files.py move --threshold 50
 ```
 ## Quick Start
 Basic Usage
