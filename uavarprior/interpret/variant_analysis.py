@@ -50,14 +50,14 @@ def classify_maf(maf: float) -> str:
         maf: Minor Allele Frequency value
         
     Returns:
-        str: 'rare' if MAF < 0.001, 'common' if MAF > 0.05, 'none' otherwise
+        str: 'rare' if MAF < 0.001, 'common' if MAF > 0.05, 'undefined' otherwise
     """
     if maf < 0.001:
         return 'rare'
     elif maf > 0.05:
         return 'common'
     else:
-        return 'none'
+        return 'undefined'
 
 
 def load_maf_data(file_path: str) -> pd.DataFrame:
@@ -321,7 +321,7 @@ def analyze_membership_matrix(
     return cell_specific_variant_names, cell_nonspecific_variant_names
 
 
-def analyze_maf_distribution(df_maf: pd.DataFrame, variant_names: List[str]) -> Tuple[int, int]:
+def analyze_maf_distribution(df_maf: pd.DataFrame, variant_names: List[str]) -> Tuple[int, int, int]:
     """
     Analyze the MAF distribution of a set of variants.
     
@@ -330,19 +330,20 @@ def analyze_maf_distribution(df_maf: pd.DataFrame, variant_names: List[str]) -> 
         variant_names: List of variant names to analyze
     
     Returns:
-        Tuple[int, int]: Count of rare and common variants
+        Tuple[int, int, int]: Count of rare, common, and undefined variants
     """
     ind = df_maf['id'].isin(variant_names)
     df_subset = df_maf[ind]
     rare_count = (df_subset['category'] == 'rare').sum()
     common_count = (df_subset['category'] == 'common').sum()
+    undefined_count = (df_subset['category'] == 'undefined').sum()
     
     print(f"Total variants analyzed: {len(df_subset)}")
     print(f"Rare variants (MAF < 0.001): {rare_count}")
     print(f"Common variants (MAF > 0.05): {common_count}")
-    print(f"Other variants: {len(df_subset) - rare_count - common_count}")
+    print(f"Undefined variants: {undefined_count}")
     
-    return rare_count, common_count
+    return rare_count, common_count, undefined_count
 
 
 # File operations
