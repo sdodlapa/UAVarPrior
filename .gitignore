@@ -1,0 +1,20 @@
+# Python bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Large data files
+*.pkl
+*.parquet.gz
+
+# Large data directories
+uavarprior/data/combined_*.parquet.gz
+uavarprior/interpret/*.pkl
