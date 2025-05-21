@@ -18,3 +18,4 @@ build/
 # Large data directories
 uavarprior/data/combined_*.parquet.gz
 uavarprior/interpret/*.pkl
+outputs/
