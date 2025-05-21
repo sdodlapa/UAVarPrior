@@ -369,7 +369,7 @@ def save_variant_lists(
     """
     # Create output directory if it doesn't exist
     if output_dir is None:
-        output_dir = os.path.join(os.path.dirname(os.path.abspath('__file__')), 'outputs')
+        output_dir = os.path.join(os.getcwd(), 'outputs')
     os.makedirs(output_dir, exist_ok=True)
     
     # Save cell-specific variant names
@@ -416,7 +416,7 @@ def load_variant_lists(
     """
     # Set output directory
     if output_dir is None:
-        output_dir = os.path.join(os.path.dirname(os.path.abspath('__file__')), 'outputs')
+        output_dir = os.path.join(os.getcwd(), 'outputs')
     
     # Load cell-specific variants
     specific_file = os.path.join(output_dir, f'cell_specific_variants_{pred_model}_group_{group}.pkl')
@@ -541,15 +541,43 @@ def run_full_analysis(group: int = 1, save_results: bool = True, output_dir: str
 
 
 if __name__ == "__main__":
-    # Example usage
+    import argparse
+    
+    # Set up command line argument parsing
+    parser = argparse.ArgumentParser(description="Variant Analysis Module")
+    parser.add_argument("--group", type=int, default=1,
+                        help="Group number (default: 1)")
+    parser.add_argument("--output-dir", type=str, default=None,
+                        help="Output directory for saving results")
+    parser.add_argument("--no-save", action="store_true",
+                        help="Don't save results to files")
+    parser.add_argument("--model", type=str, choices=["pred1", "pred150", "both"], default="both",
+                       help="Which prediction model to process (default: both)")
+    
+    # Parse command line arguments
+    args = parser.parse_args()
+    
     print("Variant Analysis Module")
-    print("Run this script directly to perform the full analysis:")
-    print("  python variant_analysis.py")
+    print(f"Running analysis for group {args.group}")
     
-    # Uncomment to run the full analysis
-    # results = run_full_analysis(group=1)
+    if args.output_dir:
+        print(f"Results will be saved to: {args.output_dir}")
+    elif not args.no_save:
+        default_output_dir = os.path.join(os.getcwd(), 'outputs')
+        print(f"Results will be saved to default directory: {default_output_dir}")
+    else:
+        print("Results will not be saved (--no-save flag is set)")
+        
+    # Run the analysis with the specified parameters
+    results = run_full_analysis(
+        group=args.group,
+        save_results=not args.no_save,
+        output_dir=args.output_dir
+    )
     
-    # Or run specific parts as needed:
+    print("\nAnalysis complete!")
+    
+    # Example of other ways to use the module:
     """
     # Load MAF data
     maf_data = load_maf_data('/path/to/maf_data.parquet.gz')
@@ -565,3 +593,4 @@ if __name__ == "__main__":
     # Or load previously saved results
     cell_specific, cell_nonspecific = load_variant_lists('pred1', 1)
     """
+
