@@ -19,6 +19,39 @@ cd UAVarPrior
 # Install the package
 pip install -e .
 ```
+
+## Large Files Handling
+
+This repository uses `.gitignore` to exclude large files that exceed GitHub's 100MB limit. Key large files are stored in designated `outputs` directories that are not tracked by Git.
+
+### Locations for Large Files
+
+- **Data Files**: Large data files should be stored in `uavarprior/data/outputs/`
+- **Model Weights**: Large model files should be stored in `uavarprior/model/outputs/`
+- **Analysis Results**: Large analysis files (like pickle files) should be stored in `uavarprior/interpret/outputs/`
+
+### Sharing Large Files
+
+For collaboration, large files can be shared via:
+1. Cloud storage (Google Drive, Dropbox, etc.)
+2. Institutional file sharing services
+3. Data repositories like Zenodo or Figshare
+
+### Using Git LFS (Optional)
+
+For advanced users, Git Large File Storage (LFS) can be used to track large files:
+
+```bash
+# Install Git LFS
+git lfs install
+
+# Track large file types
+git lfs track "*.pkl"
+git lfs track "*.parquet.gz"
+
+# Make sure to commit the .gitattributes file
+git add .gitattributes
+```
 ## Quick Start
 Basic Usage
 
