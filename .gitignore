@@ -14,8 +14,23 @@ build/
 # Large data files
 *.pkl
 *.parquet.gz
+*.h5
+*.hdf5
+*.npy
+*.npz
+*.pt
+*.pth
+*.ckpt
 
 # Large data directories
-uavarprior/data/combined_*.parquet.gz
-uavarprior/interpret/*.pkl
+*/*/outputs/
+uavarprior/data/outputs/
+uavarprior/model/outputs/
+uavarprior/interpret/outputs/
 outputs/
+
+# OS specific files
+.DS_Store
+.Spotlight-V100
+.Trashes
+Thumbs.db
