@@ -3,7 +3,7 @@
 
 # Set default parameters
 set GROUP = 1
-set OUTPUT_DIR = "/scratch/ml-csm/projects/fgenom/gve/output/kmeans/var_ana/"
+set OUTPUT_DIR = "/scratch/ml-csm/projects/fgenom/gve/output/kmeans/outputs/"
 set MODEL = "both"
 
 # Parse command-line arguments
