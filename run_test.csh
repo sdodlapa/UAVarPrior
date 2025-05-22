@@ -1,7 +1,10 @@
 #!/bin/tcsh
-
+# 
 # This script runs the test_matrix_loading.py script with proper environment setup
-
+# 
+# Created by: Sanjeeva Reddy Dodlapati
+# Date: May 22, 2025
+#
 # Print banner
 echo ""
 echo "========================================================"

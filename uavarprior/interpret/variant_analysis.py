@@ -8,6 +8,9 @@ and cell-nonspecific variants and analyze their minor allele frequency (MAF)
 distribution.
 
 Created from the signVar_by_profile.ipynb notebook.
+
+Created by: Sanjeeva Reddy Dodlapati
+Date: May 22, 2025
 """
 
 import os
