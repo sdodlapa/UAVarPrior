@@ -62,6 +62,9 @@ endif
 set model = "pred1"
 set group = "1"
 set output_dir = ""
+set ext_path = ""
+set matrix_file = ""
+set files_file = ""
 
 # Loop through arguments
 foreach arg ($argv)
@@ -71,6 +74,12 @@ foreach arg ($argv)
         set group = `echo $arg | sed 's/--group=//'`
     else if ("$arg" =~ "--output-dir=*") then
         set output_dir = `echo $arg | sed 's/--output-dir=//'`
+    else if ("$arg" =~ "--ext-path=*") then
+        set ext_path = `echo $arg | sed 's/--ext-path=//'`
+    else if ("$arg" =~ "--matrix-file=*") then
+        set matrix_file = `echo $arg | sed 's/--matrix-file=//'`
+    else if ("$arg" =~ "--files-file=*") then
+        set files_file = `echo $arg | sed 's/--files-file=//'`
     endif
 end
 
@@ -84,6 +93,15 @@ if ("$group" != "") then
 endif
 if ("$output_dir" != "") then
     set options = "$options --output-dir $output_dir"
+endif
+if ("$ext_path" != "") then
+    set options = "$options --ext-path \"$ext_path\""
+endif
+if ("$matrix_file" != "") then
+    set options = "$options --matrix-file \"$matrix_file\""
+endif
+if ("$files_file" != "") then
+    set options = "$options --files-file \"$files_file\""
 endif
 
 # Set up environment variables to prevent conflicts
