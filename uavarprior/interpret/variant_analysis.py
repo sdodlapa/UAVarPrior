@@ -17,8 +17,10 @@ import pickle
 import numpy as np
 from scipy import sparse
 import time
+import datetime
 from typing import Dict, List, Set, Tuple, Union, Optional
 from collections import Counter
+import datetime
 
 
 # MAF extraction and classification
@@ -367,33 +369,47 @@ def save_variant_lists(
     Returns:
         None
     """
-    # Create output directory if it doesn't exist
-    if output_dir is None:
-        output_dir = os.path.join(os.getcwd(), 'outputs')
-    os.makedirs(output_dir, exist_ok=True)
-    
-    # Save cell-specific variant names
-    specific_output = os.path.join(output_dir, f'cell_specific_variants_{pred_model}_group_{group}.pkl')
-    with open(specific_output, 'wb') as f:
-        pickle.dump(cell_specific_variants, f)
-    print(f"Saved {len(cell_specific_variants)} cell-specific variants ({pred_model}) to: {specific_output}")
-    
-    # Save cell-nonspecific variant names
-    nonspecific_output = os.path.join(output_dir, f'cell_nonspecific_variants_{pred_model}_group_{group}.pkl')
-    with open(nonspecific_output, 'wb') as f:
-        pickle.dump(cell_nonspecific_variants, f)
-    print(f"Saved {len(cell_nonspecific_variants)} cell-nonspecific variants ({pred_model}) to: {nonspecific_output}")
-    
-    # Optional: Save as text files (one variant name per line) for easier inspection
-    specific_txt = os.path.join(output_dir, f'cell_specific_variants_{pred_model}_group_{group}.txt')
-    with open(specific_txt, 'w') as f:
-        for name in cell_specific_variants:
-            f.write(f"{name}\n")
-    
-    nonspecific_txt = os.path.join(output_dir, f'cell_nonspecific_variants_{pred_model}_group_{group}.txt')
-    with open(nonspecific_txt, 'w') as f:
-        for name in cell_nonspecific_variants:
-            f.write(f"{name}\n")
+    try:
+        # Create output directory if it doesn't exist
+        if output_dir is None:
+            output_dir = os.path.join(os.getcwd(), 'outputs')
+        
+        os.makedirs(output_dir, exist_ok=True)
+        print(f"Saving results to: {output_dir}")
+        
+        # Save cell-specific variant names
+        specific_output = os.path.join(output_dir, f'cell_specific_variants_{pred_model}_group_{group}.pkl')
+        with open(specific_output, 'wb') as f:
+            pickle.dump(cell_specific_variants, f)
+        print(f"Saved {len(cell_specific_variants)} cell-specific variants ({pred_model}) to: {specific_output}")
+        
+        # Save cell-nonspecific variant names
+        nonspecific_output = os.path.join(output_dir, f'cell_nonspecific_variants_{pred_model}_group_{group}.pkl')
+        with open(nonspecific_output, 'wb') as f:
+            pickle.dump(cell_nonspecific_variants, f)
+        print(f"Saved {len(cell_nonspecific_variants)} cell-nonspecific variants ({pred_model}) to: {nonspecific_output}")
+        
+        # Optional: Save as text files (one variant name per line) for easier inspection
+        specific_txt = os.path.join(output_dir, f'cell_specific_variants_{pred_model}_group_{group}.txt')
+        with open(specific_txt, 'w') as f:
+            for name in cell_specific_variants:
+                f.write(f"{name}\n")
+        
+        nonspecific_txt = os.path.join(output_dir, f'cell_nonspecific_variants_{pred_model}_group_{group}.txt')
+        with open(nonspecific_txt, 'w') as f:
+            for name in cell_nonspecific_variants:
+                f.write(f"{name}\n")
+                
+    except PermissionError as e:
+        print(f"ERROR: Permission denied when writing to {output_dir}")
+        print(f"Details: {e}")
+        print("Suggestion: Check if you have write permissions to this directory or provide an alternative directory.")
+    except OSError as e:
+        print(f"ERROR: Failed to save files to {output_dir}")
+        print(f"Details: {e}")
+    except Exception as e:
+        print(f"ERROR: Unexpected error while saving files")
+        print(f"Details: {e}")
 
 
 def load_variant_lists(
@@ -431,6 +447,61 @@ def load_variant_lists(
     print(f"Loaded {len(cell_nonspecific_variants)} cell-nonspecific variants for {pred_model}")
     
     return cell_specific_variants, cell_nonspecific_variants
+
+
+def create_readme(output_dir: str) -> None:
+    """
+    Create a README file in the output directory explaining the files.
+    
+    Args:
+        output_dir: Path to the output directory
+    """
+    try:
+        # Read template
+        readme_template_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'README_template.md')
+        
+        # Check if template exists
+        if not os.path.exists(readme_template_path):
+            # Create a basic template
+            content = f"""# Variant Analysis Results
+
+This directory contains the results of running the variant analysis module on genetic variant data.
+
+## Files Description
+
+For each prediction model (`pred1`, `pred150`) and group number, the following files are generated:
+
+- `cell_specific_variants_<model>_group_<n>.pkl`: Pickle file containing cell-specific variant names (appearing in exactly 1 file)
+- `cell_specific_variants_<model>_group_<n>.txt`: Text file with the same variant names, one per line
+- `cell_nonspecific_variants_<model>_group_<n>.pkl`: Pickle file containing cell-nonspecific variant names (appearing in at least 80 files)
+- `cell_nonspecific_variants_<model>_group_<n>.txt`: Text file with the same variant names, one per line
+
+## Analysis Date
+
+These results were generated on: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+
+## Generated By
+
+Variant Analysis module from the UAVarPrior project.
+"""
+        else:
+            # Read from template file
+            with open(readme_template_path, 'r') as f:
+                content = f.read()
+            
+            # Replace date placeholder
+            content = content.replace('$(date)', datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+        
+        # Write README to output directory
+        readme_path = os.path.join(output_dir, 'README.md')
+        with open(readme_path, 'w') as f:
+            f.write(content)
+        
+        print(f"Created README file at: {readme_path}")
+    
+    except Exception as e:
+        print(f"Warning: Could not create README file: {e}")
+        # Non-fatal error, continue execution
 
 
 # Main workflow functions
@@ -491,11 +562,12 @@ def process_prediction_model(
             group,
             output_dir
         )
+        create_readme(output_dir)
     
     return cell_specific_variants, cell_nonspecific_variants
 
 
-def run_full_analysis(group: int = 1, save_results: bool = True, output_dir: str = None) -> Dict:
+def run_full_analysis(group: int = 1, save_results: bool = True, output_dir: str = None, model: str = "both") -> Dict:
     """
     Run the full analysis pipeline for both prediction models.
     
@@ -503,28 +575,48 @@ def run_full_analysis(group: int = 1, save_results: bool = True, output_dir: str
         group: Group number (default: 1)
         save_results: If True, save results to files
         output_dir: Output directory for saving results
+        model: Which prediction model to process ("pred1", "pred150", or "both")
         
     Returns:
         Dict: Dictionary containing all results
     """
+    # Set default output directory if not provided
+    if output_dir is None:
+        output_dir = os.path.join(os.getcwd(), 'outputs')
+    
+    # Create output directory if it doesn't exist
+    os.makedirs(output_dir, exist_ok=True)
+    
+    # Create README file
+    if save_results:
+        create_readme(output_dir)
+    
     # Load MAF data
     print("Loading MAF data...")
     maf_data_path = '/scratch/ml-csm/datasets/genomics/ref-genome/human/GRCh38/ensembl/variants/processed/1000GENOMES-release114-maf.parquet.gz'
     maf_data = load_maf_data(maf_data_path)
     print(f"MAF data loaded with {len(maf_data)} variants")
     
-    # Process pred150 model
-    pred150_path = f'/home/sdodl001/Desktop/DNA_Methylation_Scripts/cpg_util_scripts/data/kmeans/uncert_gve_direction/{group}/pred200_merged/'
-    cell_specific_variants_pred150, cell_nonspecific_variants_pred150 = process_prediction_model(
-        group, 'pred150', pred150_path, maf_data, save_results, output_dir
-    )
+    # Initialize variables
+    cell_specific_variants_pred150 = None
+    cell_nonspecific_variants_pred150 = None
+    cell_specific_variants_pred1 = None
+    cell_nonspecific_variants_pred1 = None
     
-    # Process pred1 model
-    thr = 0.10
-    pred1_path = f'/scratch/ml-csm/projects/fgenom/gve/output/kmeans/pred1/aggr/thr{thr}/{group}/'
-    cell_specific_variants_pred1, cell_nonspecific_variants_pred1 = process_prediction_model(
-        group, 'pred1', pred1_path, maf_data, save_results, output_dir
-    )
+    # Process pred150 model if requested
+    if model in ["pred150", "both"]:
+        pred150_path = f'/home/sdodl001/Desktop/DNA_Methylation_Scripts/cpg_util_scripts/data/kmeans/uncert_gve_direction/{group}/pred200_merged/'
+        cell_specific_variants_pred150, cell_nonspecific_variants_pred150 = process_prediction_model(
+            group, 'pred150', pred150_path, maf_data, save_results, output_dir
+        )
+    
+    # Process pred1 model if requested
+    if model in ["pred1", "both"]:
+        thr = 0.10
+        pred1_path = f'/scratch/ml-csm/projects/fgenom/gve/output/kmeans/pred1/aggr/thr{thr}/{group}/'
+        cell_specific_variants_pred1, cell_nonspecific_variants_pred1 = process_prediction_model(
+            group, 'pred1', pred1_path, maf_data, save_results, output_dir
+        )
     
     # Return all results
     return {
@@ -547,8 +639,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Variant Analysis Module")
     parser.add_argument("--group", type=int, default=1,
                         help="Group number (default: 1)")
-    parser.add_argument("--output-dir", type=str, default=None,
-                        help="Output directory for saving results")
+    parser.add_argument("--output-dir", type=str, 
+                        default="/scratch/ml-csm/projects/fgenom/gve/output/kmeans/var_ana/",
+                        help="Output directory for saving results (default: /scratch/ml-csm/projects/fgenom/gve/output/kmeans/var_ana/)")
     parser.add_argument("--no-save", action="store_true",
                         help="Don't save results to files")
     parser.add_argument("--model", type=str, choices=["pred1", "pred150", "both"], default="both",
@@ -572,7 +665,8 @@ if __name__ == "__main__":
     results = run_full_analysis(
         group=args.group,
         save_results=not args.no_save,
-        output_dir=args.output_dir
+        output_dir=args.output_dir,
+        model=args.model
     )
     
     print("\nAnalysis complete!")
