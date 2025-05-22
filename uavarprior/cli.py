@@ -17,7 +17,7 @@ from typing import Optional
 
 from uavarprior import __version__
 from uavarprior.setup import load_path, parse_configs_and_run
-from uavarprior.utils.logging import setup_logging
+from uavarprior.utils import setup_logging
 
 @click.group()
 @click.version_option(__version__)
