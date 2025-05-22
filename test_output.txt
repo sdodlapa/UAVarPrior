@@ -1,2 +1,4 @@
-IMPORT ERROR: No module named 'pydantic'
-Python path: ['/home/sdodl001/UAVarPrior', '/opt/conda/lib/python310.zip', '/opt/conda/lib/python3.10', '/opt/conda/lib/python3.10/lib-dynload', '/home/sdodl001/envs/UAVarPrior/lib/python3.10/site-packages', '/opt/conda/lib/python3.10/site-packages']
+  File "<string>", line 1
+    try: import uavarprior; print(f'SUCCESS: UAVarPrior version {uavarprior.__version__} imported successfully!'); except Exception as e: print(f'ERROR: {e}')
+                                                                                                                   ^^^^^^
+SyntaxError: invalid syntax
