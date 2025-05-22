@@ -9,6 +9,7 @@ import sys
 import os
 
 import numpy as np
+from uavarprior.utils.logging import setup_logging
 
 def get_indices_and_probabilities(interval_lengths, indices):
     """

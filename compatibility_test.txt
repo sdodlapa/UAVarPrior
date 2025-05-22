@@ -1,1 +1,6 @@
-❌ FAILED: Basic package import: cannot import name 'initialize_logger' from 'uavarprior.utils' (/home/sdodl001/UAVarPrior/uavarprior/utils/__init__.py)
+2025-05-22 19:18:20.396880: E external/local_xla/xla/stream_executor/cuda/cuda_fft.cc:485] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
+2025-05-22 19:18:20.992388: E external/local_xla/xla/stream_executor/cuda/cuda_dnn.cc:8454] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
+2025-05-22 19:18:21.140040: E external/local_xla/xla/stream_executor/cuda/cuda_blas.cc:1452] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
+2025-05-22 19:18:22.238493: I tensorflow/core/platform/cpu_feature_guard.cc:210] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+To enable the following instructions: AVX2 AVX512F FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
+❌ FAILED: Basic package import: cannot import name 'main' from 'uavarprior.cli' (/home/sdodl001/UAVarPrior/uavarprior/cli.py)

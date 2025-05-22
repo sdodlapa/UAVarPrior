@@ -85,3 +85,8 @@ def _apply_override(config: dict, param_path: str, value: str) -> None:
 
 if __name__ == "__main__":
     cli()  # Changed from main() to cli()
+
+# Alias for entry point
+main = cli
+
+__all__ = ['cli', 'main']

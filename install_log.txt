@@ -11,8 +11,8 @@ Obtaining file:///home/sdodl001/UAVarPrior
 Building wheels for collected packages: uavarprior
   Building editable for uavarprior (pyproject.toml): started
   Building editable for uavarprior (pyproject.toml): finished with status 'done'
-  Created wheel for uavarprior: filename=uavarprior-0.1.0.dev0-0.editable-cp310-cp310-linux_x86_64.whl size=5813 sha256=c79a8e2048e5377865d07c68ae897e0d5200cdeaf1d251335d1eb831b0d4d709
-  Stored in directory: /tmp/pip-ephem-wheel-cache-ju_o7kgl/wheels/1f/17/4d/9ea4c1eb8a0be1ef254f3b80ba27578cf1c394b28b16a91e80
+  Created wheel for uavarprior: filename=uavarprior-0.1.0.dev0-0.editable-cp310-cp310-linux_x86_64.whl size=5813 sha256=9c22fac07df693590588685e07d132bd8e03041a2457da7f023eb33e38f35c11
+  Stored in directory: /tmp/pip-ephem-wheel-cache-63xpybdy/wheels/1f/17/4d/9ea4c1eb8a0be1ef254f3b80ba27578cf1c394b28b16a91e80
 Successfully built uavarprior
 Installing collected packages: uavarprior
   Attempting uninstall: uavarprior
