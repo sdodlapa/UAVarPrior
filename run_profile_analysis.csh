@@ -26,6 +26,29 @@ else
     set PYTHON = "python3"
 endif
 
+# Check if numpy is available
+$PYTHON -c "import numpy" >& /dev/null
+if ($status != 0) then
+    echo "WARNING: NumPy is not installed in your Python environment"
+    echo "NumPy is required for matrix analysis"
+    echo ""
+    echo "Would you like to install NumPy now? (y/n)"
+    set answer = $<
+    
+    if ("$answer" == "y" || "$answer" == "Y") then
+        echo "Installing NumPy..."
+        $PYTHON -m pip install numpy scipy
+        
+        if ($status == 0) then
+            echo "NumPy installed successfully!"
+        else
+            echo "Failed to install NumPy. Please install it manually:"
+            echo "  $PYTHON -m pip install numpy scipy"
+            echo ""
+        endif
+    endif
+endif
+
 # Check for conda (optional)
 which conda >& /dev/null
 set HAS_CONDA = $status
@@ -76,40 +99,54 @@ echo ""
 echo "Attempting to run standalone analysis for similarity matrix..."
 if ($HAS_CONDA == 0) then
     conda run -p ~/envs/fugep $PYTHON standalone_test.py --matrix-type=similarity $options
+    set TEST_STATUS = $status
 else
     $PYTHON standalone_test.py --matrix-type=similarity $options
+    set TEST_STATUS = $status
 endif
 
 # Check if the standalone analysis was successful
-if ($status == 0) then
+if ($TEST_STATUS == 0) then
     echo ""
     echo "Standalone analysis completed successfully!"
 else
     echo ""
-    echo "Standalone analysis failed with exit code $status"
+    echo "Standalone analysis failed with exit code $TEST_STATUS"
     echo ""
     echo "Trying simple analysis..."
     
     # Try running the simple profile analysis script as a fallback
     if ($HAS_CONDA == 0) then
         conda run -p ~/envs/fugep $PYTHON simple_profile_analysis.py $options
+        set SIMPLE_STATUS = $status
     else
         $PYTHON simple_profile_analysis.py $options
+        set SIMPLE_STATUS = $status
     endif
     
-    if ($status == 0) then
+    if ($SIMPLE_STATUS == 0) then
         echo "Simple analysis completed successfully!"
     else
         echo ""
         echo "All analysis attempts failed."
+        echo "Simple analysis failed with exit code $SIMPLE_STATUS"
         echo ""
-        echo "If you're getting ImportError related to torch or other missing dependencies, try:"
+        echo "You may be missing required Python packages. Here are some options:"
+        echo ""
         echo "1. Checking available matrices:"
         echo "   ls -l outputs/*.npz"
-        echo "2. Running the standalone test directly:"
-        echo "   $PYTHON standalone_test.py --matrix-type=similarity $options"
-        echo "3. If using conda and want to install visualization dependencies:"
-        echo "   conda activate ~/envs/fugep"
-        echo "   conda install -c conda-forge matplotlib seaborn scipy"
+        echo ""
+        echo "2. Install the required Python packages:"
+        echo "   pip install numpy scipy"
+        echo ""
+        echo "3. If using conda:"
+        echo "   conda install -c conda-forge numpy scipy matplotlib seaborn"
+        echo ""
+        echo "4. For direct analysis, try running one of these commands:"
+        if ($HAS_CONDA == 0) then
+            echo "   conda run -p ~/envs/fugep $PYTHON standalone_test.py --matrix-type=similarity $options"
+        else
+            echo "   $PYTHON standalone_test.py --matrix-type=similarity $options"
+        endif
     endif
 endif
