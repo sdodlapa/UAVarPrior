@@ -526,6 +526,213 @@ def calculate_variant_profile_counts(
     return df_counts
 
 
+def calculate_profile_similarity_matrix(
+    membership_matrix: sparse.csr_matrix,
+    files: List[str],
+    pred_model: str,
+    group: int,
+    output_dir: str = None,
+    verbose: bool = True
+) -> sparse.csr_matrix:
+    """
+    Calculate a similarity matrix showing the number of common variants between each pair of profiles.
+    
+    Args:
+        membership_matrix: Binary membership matrix (variants × profiles)
+        files: List of file names
+        pred_model: Prediction model identifier (e.g., 'pred1', 'pred150')
+        group: Group number
+        output_dir: Output directory for saving results
+        verbose: If True, print information about the resulting matrix
+        
+    Returns:
+        sparse.csr_matrix: Similarity matrix (profiles × profiles) where each element [i,j] is 
+                          the count of variants shared between profiles i and j
+    """
+    start_time = time.time()
+    
+    # Transpose the membership matrix to get a matrix of profiles × variants
+    profiles_matrix = membership_matrix.transpose()
+    
+    # Multiply the profiles matrix by the original membership matrix to get the similarity matrix
+    # This will be a profiles × profiles matrix where each element [i,j] is the number of variants
+    # shared between profile i and profile j
+    similarity_matrix = profiles_matrix.dot(membership_matrix)
+    
+    if verbose:
+        print(f"\nProfile similarity matrix shape: {similarity_matrix.shape} (profiles × profiles)")
+        print(f"Number of non-zero elements: {similarity_matrix.count_nonzero()}")
+        nonzero_percentage = 100 * similarity_matrix.count_nonzero() / (similarity_matrix.shape[0] * similarity_matrix.shape[1])
+        print(f"Non-zero percentage: {nonzero_percentage:.2f}%")
+        print(f"Computation time: {time.time() - start_time:.2f} seconds")
+        
+        # Calculate some statistics
+        similarity_values = similarity_matrix.data
+        print(f"\nStatistics of non-zero similarity values:")
+        print(f"  Min: {similarity_values.min()}")
+        print(f"  Max: {similarity_values.max()}")
+        print(f"  Mean: {similarity_values.mean():.2f}")
+        print(f"  Median: {np.median(similarity_values):.2f}")
+        
+        # Histogram of diagonal elements (self-similarity, i.e., number of variants in each profile)
+        diag_values = similarity_matrix.diagonal()
+        print(f"\nStatistics of diagonal elements (variants per profile):")
+        print(f"  Min: {diag_values.min()}")
+        print(f"  Max: {diag_values.max()}")
+        print(f"  Mean: {diag_values.mean():.2f}")
+        print(f"  Median: {np.median(diag_values):.2f}")
+    
+    # If output directory is provided, save the similarity matrix
+    if output_dir:
+        # Create output directory if it doesn't exist
+        if output_dir is None:
+            output_dir = os.path.join(os.getcwd(), 'outputs')
+            
+        os.makedirs(output_dir, exist_ok=True)
+        
+        # Save the sparse similarity matrix
+        matrix_file = os.path.join(output_dir, f'profile_similarity_matrix_{pred_model}_group_{group}.npz')
+        sparse.save_npz(matrix_file, similarity_matrix)
+        print(f"Saved profile similarity matrix to: {matrix_file}")
+        
+        # Save the file names to help interpret the matrix
+        files_file = os.path.join(output_dir, f'profile_similarity_files_{pred_model}_group_{group}.pkl')
+        with open(files_file, 'wb') as f:
+            pickle.dump(files, f)
+        print(f"Saved profile names to: {files_file}")
+        
+        # Optionally save the top N most similar pairs
+        if verbose:
+            # Extract upper triangular part of the matrix (excluding diagonal)
+            rows, cols = similarity_matrix.nonzero()
+            mask = rows < cols  # Upper triangular only
+            rows, cols = rows[mask], cols[mask]
+            values = similarity_matrix.data[mask]
+            
+            # Sort by similarity value in descending order
+            top_indices = np.argsort(-values)[:100]  # Top 100 most similar pairs
+            
+            # Create a CSV file with the top pairs
+            csv_path = os.path.join(output_dir, f'top_similar_profiles_{pred_model}_group_{group}.csv')
+            with open(csv_path, 'w') as f:
+                f.write("Profile1,Profile2,CommonVariants,Profile1_TotalVariants,Profile2_TotalVariants,JaccardSimilarity\n")
+                for idx in top_indices:
+                    i, j = rows[idx], cols[idx]
+                    common = similarity_matrix[i, j]
+                    variants_i = similarity_matrix[i, i]
+                    variants_j = similarity_matrix[j, j]
+                    jaccard = common / (variants_i + variants_j - common) if common > 0 else 0
+                    f.write(f"{files[i]},{files[j]},{common},{variants_i},{variants_j},{jaccard:.6f}\n")
+            print(f"Saved top 100 most similar profile pairs to: {csv_path}")
+    
+    return similarity_matrix
+
+
+def load_profile_similarity_matrix(
+    pred_model: str,
+    group: int,
+    output_dir: str = None,
+    verbose: bool = True
+) -> Tuple[sparse.csr_matrix, List[str]]:
+    """
+    Load the profile similarity matrix and associated file names.
+    
+    Args:
+        pred_model: Prediction model identifier (e.g., 'pred1', 'pred150')
+        group: Group number
+        output_dir: Output directory containing saved files
+        verbose: If True, print information about loaded data
+        
+    Returns:
+        Tuple containing:
+        - sparse.csr_matrix: Similarity matrix (profiles × profiles)
+        - List[str]: List of file names
+    """
+    # Set default output directory if not provided
+    if output_dir is None:
+        output_dir = os.path.join(os.getcwd(), 'outputs')
+    
+    # Load the sparse matrix
+    matrix_file = os.path.join(output_dir, f'profile_similarity_matrix_{pred_model}_group_{group}.npz')
+    similarity_matrix = sparse.load_npz(matrix_file)
+    
+    # Load the files list
+    files_file = os.path.join(output_dir, f'profile_similarity_files_{pred_model}_group_{group}.pkl')
+    with open(files_file, 'rb') as f:
+        files = pickle.load(f)
+    
+    if verbose:
+        print(f"\nLoaded profile similarity matrix with shape {similarity_matrix.shape}")
+        print(f"Number of non-zero elements: {similarity_matrix.count_nonzero()}")
+        nonzero_percentage = 100 * similarity_matrix.count_nonzero() / (similarity_matrix.shape[0] * similarity_matrix.shape[1])
+        print(f"Non-zero percentage: {nonzero_percentage:.2f}%")
+    
+    return similarity_matrix, files
+
+
+def visualize_profile_similarity(
+    similarity_matrix: sparse.csr_matrix, 
+    files: List[str], 
+    sample_size: int = 50,
+    output_file: str = None
+) -> None:
+    """
+    Visualize the profile similarity matrix as a heatmap.
+    
+    Args:
+        similarity_matrix: Similarity matrix (profiles × profiles)
+        files: List of file names
+        sample_size: Number of profiles to sample for visualization
+        output_file: Path to save the visualization (default: None, just display)
+        
+    Returns:
+        None
+    """
+    try:
+        import matplotlib.pyplot as plt
+        import seaborn as sns
+        
+        # Check if the matrix is too large to visualize in full
+        if similarity_matrix.shape[0] > sample_size:
+            print(f"Matrix is large ({similarity_matrix.shape[0]} x {similarity_matrix.shape[0]}), sampling {sample_size} profiles for visualization.")
+            
+            # Sample a subset of profiles
+            indices = np.random.choice(similarity_matrix.shape[0], sample_size, replace=False)
+            indices.sort()  # Sort to preserve some order
+            
+            # Extract submatrix
+            submatrix = similarity_matrix[indices, :][:, indices].toarray()
+            file_labels = [os.path.basename(files[i]) for i in indices]
+        else:
+            # Use the full matrix
+            submatrix = similarity_matrix.toarray()
+            file_labels = [os.path.basename(f) for f in files]
+        
+        # Create the heatmap
+        plt.figure(figsize=(14, 12))
+        sns.heatmap(
+            submatrix, 
+            cmap='viridis', 
+            xticklabels=file_labels if len(file_labels) <= 30 else False,
+            yticklabels=file_labels if len(file_labels) <= 30 else False
+        )
+        plt.title(f'Profile Similarity Matrix (Common Variants)')
+        plt.tight_layout()
+        
+        # Save or display
+        if output_file:
+            plt.savefig(output_file, dpi=150)
+            print(f"Saved visualization to: {output_file}")
+        else:
+            plt.show()
+            
+    except ImportError:
+        print("Visualization requires matplotlib and seaborn. Install with: pip install matplotlib seaborn")
+        print("You can still analyze the similarity matrix programmatically.")
+        
+    return None
+
+
 # File operations
 def save_variant_lists(
     cell_specific_variants: List[str],
@@ -655,6 +862,9 @@ For each prediction model (`pred1`, `pred150`) and group number, the following f
 - `cell_nonspecific_variants_<model>_group_<n>.txt`: Text file with the same variant names, one per line
 - `variant_profile_counts_<model>_group_<n>.csv`: CSV file containing counts of how many profiles (cells) each variant appears in
 - `variant_profile_counts_<model>_group_<n>.parquet`: Parquet file with the same data for efficient storage and retrieval
+- `profile_similarity_matrix_<model>_group_<n>.npz`: Sparse matrix showing the number of common variants between each pair of profiles
+- `profile_similarity_files_<model>_group_<n>.pkl`: List of profile names corresponding to the similarity matrix indices
+- `top_similar_profiles_<model>_group_<n>.csv`: CSV file containing the top 100 most similar profile pairs
 
 ## Analysis Date
 
@@ -763,9 +973,19 @@ def process_prediction_model(
         output_dir
     )
     
-    # Step 6: Save results if requested
+    # Step 6: Calculate profile similarity matrix
+    print("\nStep 6: Calculating profile similarity matrix...")
+    calculate_profile_similarity_matrix(
+        membership_matrix,
+        files,
+        model_name,
+        group,
+        output_dir
+    )
+    
+    # Step 7: Save results if requested
     if save_results:
-        print("\nStep 6: Saving results...")
+        print("\nStep 7: Saving results...")
         save_variant_lists(
             cell_specific_variants,
             cell_nonspecific_variants,
