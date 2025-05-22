@@ -8,7 +8,7 @@ from selene_sdk.sequences.proteome import _get_sequence_from_coords
 
 class TestProteome(unittest.TestCase):
     def setUp(self):
-        self.proteome = Proteome("fugep/sequences/tests/files/small.faa")
+        self.proteome = Proteome("uavarprior/sequences/tests/files/small.faa")
         self.fill_value = np.divide(1, len(Proteome.BASES_ARR), dtype=np.float32)
 
     def test_sequence_to_encoding(self):

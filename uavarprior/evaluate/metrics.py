@@ -18,7 +18,7 @@ from sklearn.metrics import recall_score
 from sklearn.metrics import f1_score
 from sklearn.metrics import confusion_matrix
 
-logger = logging.getLogger("fugep")
+logger = logging.getLogger("uavarprior")
 
 
 Metric = namedtuple("Metric", ["fn", "data"])

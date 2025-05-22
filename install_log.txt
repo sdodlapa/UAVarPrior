@@ -1,0 +1,1 @@
+bash: /home/sdodl001/envs/UAVarPrior_TF2170/bin/pip: /home/sdodl001/envs/UAVarPrior_TF2170/bin/python: bad interpreter: No such file or directory

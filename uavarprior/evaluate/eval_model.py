@@ -14,7 +14,7 @@ from ..train import LossTracker
 
 
 
-logger = logging.getLogger("fugep")
+logger = logging.getLogger("uavarprior")
 
 
 class ModelEvaluator(object):
