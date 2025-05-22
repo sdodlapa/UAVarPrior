@@ -66,3 +66,11 @@ Requirement already satisfied: mpmath<1.4,>=1.1.0 in /home/sdodl001/envs/UAVarPr
 Requirement already satisfied: MarkupSafe>=2.0 in /opt/conda/lib/python3.10/site-packages (from jinja2->torch>=0.4.1->uavarprior==0.1.0.dev0) (2.1.5)
 Building wheels for collected packages: uavarprior
   Building editable for uavarprior (pyproject.toml): started
+  Building editable for uavarprior (pyproject.toml): finished with status 'done'
+  Created wheel for uavarprior: filename=uavarprior-0.1.0.dev0-0.editable-cp310-cp310-linux_x86_64.whl size=5813 sha256=5d59479e4032d397644bdb931a53210a7ee74f5f5ca02f6b41b8c07c6b785e21
+  Stored in directory: /tmp/pip-ephem-wheel-cache-g6kwmk1i/wheels/1f/17/4d/9ea4c1eb8a0be1ef254f3b80ba27578cf1c394b28b16a91e80
+Successfully built uavarprior
+Installing collected packages: uavarprior
+  Attempting uninstall: uavarprior
+    Found existing installation: uavarprior 0.1.0.dev0
+    Uninstalling uavarprior-0.1.0.dev0:
