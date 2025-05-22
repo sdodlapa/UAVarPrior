@@ -31,19 +31,19 @@ def loadNnModule(className):
     Load network module by class name
     '''
     if className == 'DanQ':
-        return importlib.import_module('fugep.model.nn.danQ')
+        return importlib.import_module('uavarprior.model.nn.danQ')
     elif className == 'DeeperDeepSEA':
-        return importlib.import_module('fugep.model.nn.deeper_deepsea')
+        return importlib.import_module('uavarprior.model.nn.deeper_deepsea')
     elif className == 'DeepSEA':
-        return importlib.import_module('fugep.model.nn.deepsea')
+        return importlib.import_module('uavarprior.model.nn.deepsea')
     elif className == 'Sei':
-        return importlib.import_module('fugep.model.nn.sei')
+        return importlib.import_module('uavarprior.model.nn.sei')
     elif className == 'SeiHalf':
-        return importlib.import_module('fugep.model.nn.sei_half')
+        return importlib.import_module('uavarprior.model.nn.sei_half')
     elif className == 'HeartENN':
-        return importlib.import_module('fugep.model.nn.heatenn')
+        return importlib.import_module('uavarprior.model.nn.heatenn')
     elif className == 'SeqCnnL2h128' or className == 'CnnL3h128':
-        return importlib.import_module('fugep.model.nn.deepcpg_dna')
+        return importlib.import_module('uavarprior.model.nn.deepcpg_dna')
     else:
         raise ValueError("Unrecognized network class {0}".format(className))
     
@@ -53,6 +53,6 @@ def loadWrapperModule(className):
     Load model wrapper module by class name
     '''
     if className == 'UniSeqMWrapper':
-        return importlib.import_module('fugep.model.wrappers.uni_seq')
+        return importlib.import_module('uavarprior.model.wrappers.uni_seq')
     else:
         raise ValueError("Unrecognized model wrapper class {0}".format(className))

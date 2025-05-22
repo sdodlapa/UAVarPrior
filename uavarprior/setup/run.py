@@ -55,7 +55,7 @@ def class_instantiate(classobj):
     """
     for attr, obj in classobj.__dict__.items():
         is_module = getattr(obj, '__module__', None)
-        if is_module and "fugep" in is_module and attr != "model":
+        if is_module and "uavarprior" in is_module and attr != "model":
             class_instantiate(obj)
     classobj.__init__(**classobj.__dict__)
 
@@ -251,7 +251,7 @@ def initialize_model(model_configs, train=True, lr=None, configs=None):
     #     model = Model(inputs=stem.inputs, outputs=outputs, name=stem.name)
     #
     #     if "non_strand_specific" in model_configs:
-    #         from fugep.model import NonStrandSpecific
+    #         from uavarprior.model import NonStrandSpecific
     #         model = NonStrandSpecific(
     #             model, mode=model_configs["non_strand_specific"])
     #
@@ -272,7 +272,7 @@ def initialize_model(model_configs, train=True, lr=None, configs=None):
         # module = loadNnModule(model_class_name)
         # # TO DO: raise error when non strand specific in configuration variables
         # # if "non_strand_specific" in model_configs:
-        # #     from fugep.model import NonStrandSpecific
+        # #     from uavarprior.model import NonStrandSpecific
         # #     model = NonStrandSpecific(
         # #         model, mode=model_configs["non_strand_specific"])
         #

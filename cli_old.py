@@ -1,20 +1,20 @@
-"""Command line interface for FuGEP.
+"""Command line interface for UAVarPrior.
 
 Why does this file exist, and why not put this in ``__main__``? You might be tempted to import things from ``__main__``
 later, but that will cause problems--the code will get executed twice:
 
-- When you run ``python3 -m fugep`` python will execute``__main__.py`` as a script. That means there won't be any
-  ``fugep.__main__`` in ``sys.modules``.
+- When you run ``python3 -m uavarprior`` python will execute``__main__.py`` as a script. That means there won't be any
+  ``uavarprior.__main__`` in ``sys.modules``.
 - When you import __main__ it will get executed again (as a module) because
-  there's no ``fugep.__main__`` in ``sys.modules``.
+  there's no ``uavarprior.__main__`` in ``sys.modules``.
 
 .. seealso:: http://click.pocoo.org/5/setuptools/#setuptools-integration
 """
 
 import click
 
-from fugep import __version__
-from fugep.setup import load_path, parse_configs_and_run
+from uavarprior import __version__
+from uavarprior.setup import load_path, parse_configs_and_run
 
 
 @click.command()

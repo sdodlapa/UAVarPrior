@@ -16,17 +16,17 @@ import warnings
 import numpy as np
 import pandas as pd
 from multiprocessing import Pool
-from fugep.utils import initialize_logger
-from fugep.utils import make_dir
-from fugep.data.sequences import Genome
-from fugep.data.targets import DNAMethylTargets
-from fugep.data.h5.utils import DataStat
-from fugep.data.h5.utils import seqWndRadius
-from fugep.data.h5.utils import DataChunk
-from fugep.data.utils import isBedgraph
-from fugep.data.utils import isBinary
-from fugep.data.utils import formatChrom
-from fugep.data.utils import sampleByChrom
+from uavarprior.utils import initialize_logger
+from uavarprior.utils import make_dir
+from uavarprior.data.sequences import Genome
+from uavarprior.data.targets import DNAMethylTargets
+from uavarprior.data.h5.utils import DataStat
+from uavarprior.data.h5.utils import seqWndRadius
+from uavarprior.data.h5.utils import DataChunk
+from uavarprior.data.utils import isBedgraph
+from uavarprior.data.utils import isBinary
+from uavarprior.data.utils import formatChrom
+from uavarprior.data.utils import sampleByChrom
 
 
 def readCpgProf(filename, chroms=None, nSamp=None,

@@ -19,17 +19,16 @@ model: {
     wrapper: UniSeqMWrapper,
 #    non_strand_specific: mean,
 }
-analyzer: !obj:fugep.predict.MethylVarEvaluator {
+analyzer: !obj:uavarprior.predict.MethylVarEvaluator {
     analysis: [predictions], # diffs, abs_diffs, logits, predictions,
-    refSeq: !obj:fugep.data.Genome {
+    refSeq: !obj:uavarprior.data.Genome {
         input_path: /Users/sanjeev/Downloads/debug/GRCh38/ensembl/Homo_sapiens.GRCh38.dna.primary_assembly.fa
     },
 #    genAssembly: ncbi,
-#    vcfFile: /Users/sanjeev/Downloads/debug/fugep/data/samp_vcf_1k.tsv,
-#    cpgFile: /Users/sanjeev/Downloads/debug/fugep/data/refCpGHumGRCh38.tsv,
-    vcfFile: /Users/sanjeev/Downloads/debug/fugep/data/chr21_vcf_0_19.tsv,
-#    vcfFile: /Users/sanjeev/Downloads/debug/fugep/data/samp_vcf_0_100.tsv,
-    cpgFile: /Users/sanjeev/Downloads/debug/fugep/data/refCpGHumChr21.tsv,
+#    vcfFile: /Users/sanjeev/Downloads/debug/uavarprior/data/samp_vcf_1k.tsv,
+#    cpgFile: /Users/sanjeev/Downloads/debug/uavarprior/data/refCpGHumGRCh38.tsv,    vcfFile: /Users/sanjeev/Downloads/debug/uavarprior/data/chr21_vcf_0_19.tsv,
+#    vcfFile: /Users/sanjeev/Downloads/debug/uavarprior/data/samp_vcf_0_100.tsv,
+    cpgFile: /Users/sanjeev/Downloads/debug/uavarprior/data/refCpGHumChr21.tsv,
     strandIdx: 5,
     seqLen: 1001,
     batchSize: 16,

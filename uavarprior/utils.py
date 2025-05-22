@@ -89,9 +89,9 @@ def load_features_list(input_path):
     return features
 
 
-def initialize_logger(output_path, name = 'fugep', verbosity = 2):
+def initialize_logger(output_path, name = 'uavarprior', verbosity = 2):
     """
-    Initializes the logger for FuGEP.
+    Initializes the logger for UAVarPrior.
     This function can only be called successfully once.
     If the logger has already been initialized with handlers,
     the function exits. Otherwise, it proceeds to set the

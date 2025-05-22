@@ -116,7 +116,7 @@ echo ""
 # First, try using the standalone test with matrix_type=similarity
 echo "Attempting to run standalone analysis for similarity matrix..."
 if ($HAS_CONDA == 0) then
-    conda run -p ~/envs/fugep $PYTHON standalone_test.py --matrix-type=similarity $options
+    conda run -p ~/envs/UAVarPrior_TF2170 $PYTHON standalone_test.py --matrix-type=similarity $options
     set TEST_STATUS = $status
 else
     $PYTHON standalone_test.py --matrix-type=similarity $options
@@ -135,7 +135,7 @@ else
     
     # Try running the simple profile analysis script as a fallback
     if ($HAS_CONDA == 0) then
-        conda run -p ~/envs/fugep $PYTHON simple_profile_analysis.py $options
+        conda run -p ~/envs/UAVarPrior_TF2170 $PYTHON simple_profile_analysis.py $options
         set SIMPLE_STATUS = $status
     else
         $PYTHON simple_profile_analysis.py $options
@@ -162,7 +162,7 @@ else
         echo ""
         echo "4. For direct analysis, try running one of these commands:"
         if ($HAS_CONDA == 0) then
-            echo "   conda run -p ~/envs/fugep $PYTHON standalone_test.py --matrix-type=similarity $options"
+            echo "   conda run -p ~/envs/UAVarPrior_TF2170 $PYTHON standalone_test.py --matrix-type=similarity $options"
         else
             echo "   $PYTHON standalone_test.py --matrix-type=similarity $options"
         endif

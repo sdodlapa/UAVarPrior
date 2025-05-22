@@ -75,7 +75,7 @@ def loadModel(stateDict, model, newClassifier=None, freezeStem=None):
                         "Failed to load weight from module {0} in model weights "
                         "into model architecture module {1}. (If module name has "
                         "an additional prefix `model.` it is because the model is "
-                        "wrapped in `fugep.utils.NonStrandSpecific`. This "
+                        "wrapped in `uavarprior.utils.NonStrandSpecific`. This "
                         "error was raised because the underlying module does "
                         "not match that expected by the loaded model:\n"
                         "{2}".format(k2, k1, e))
@@ -97,7 +97,7 @@ def loadModel(stateDict, model, newClassifier=None, freezeStem=None):
                     "Failed to load weight from module {0} in model weights "
                     "into model architecture module {1}. (If module name has "
                     "an additional prefix `model.` it is because the model is "
-                    "wrapped in `fugep.utils.NonStrandSpecific`. This "
+                    "wrapped in `uavarprior.utils.NonStrandSpecific`. This "
                     "error was raised because the underlying module does "
                     "not match that expected by the loaded model:\n"
                     "{2}".format(k2, k1, e))

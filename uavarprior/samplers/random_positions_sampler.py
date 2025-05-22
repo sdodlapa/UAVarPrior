@@ -96,8 +96,8 @@ class RandomPositionsSampler(OnlineSampler):
     ----------
     reference_sequence : uavarprior.sequences.Genome
         The reference sequence that examples are created from.
-    target : fugep.targets.Target
-        The `fugep.targets.Target` object holding the features that we
+    target : uavarprior.targets.Target
+        The `uavarprior.targets.Target` object holding the features that we
         would like to predict.
     validation_holdout : list(str) or float
         The samples to hold out for validating model performance. These

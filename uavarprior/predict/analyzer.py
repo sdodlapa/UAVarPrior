@@ -32,7 +32,7 @@ class Analyzer(metaclass = ABCMeta):
         The path(s) to the weights file for a trained sequence-based model.
         For a single path, the model architecture must match `model`. For
         a list of paths, assumes that the `model` passed in is of type
-        `fugep.utils.MultiModelWrapper`, which takes in a list of
+        `uavarprior.utils.MultiModelWrapper`, which takes in a list of
         models. The paths must be ordered the same way the models
         are ordered in that list. `list(str)` input is an API-only function--
         Selene's config file CLI does not support the `MultiModelWrapper`
@@ -46,17 +46,17 @@ class Analyzer(metaclass = ABCMeta):
         for the output files
     colNamesOfIds : list(str)
         Specify the names of columns that will be used to identify the
-        sequence for which FuGEP has made predictions (e.g. (chrom,
+        sequence for which UAVarPrior has made predictions (e.g. (chrom,
         pos, id, ref, alt) will be the column names for variant effect
         prediction outputs). 
     outputFormat : {'tsv', 'hdf5'}
-            The desired output format. Currently FuGEP supports TSV and HDF5
+            The desired output format. Currently UAVarPrior supports TSV and HDF5
             formats.   
     outputSize : int, optional
         The total number of rows in the output. Must be specified when
         the outputFormat is hdf5.
     mode : {'prediction', 'ism', 'varianteffect'}
-        If saving model predictions, the handler FuGEP chooses for the
+        If saving model predictions, the handler UAVarPrior chooses for the
         task is dependent on the mode. For example, the reporter for
         variant effect prediction writes paired ref and alt predictions
         to different files.

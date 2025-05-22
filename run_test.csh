@@ -26,7 +26,7 @@ setenv PYTHONPATH ""
 
 # Run the test script using conda run
 echo "Running test_matrix_loading.py..."
-conda run -p ~/envs/fugep python test_matrix_loading.py
+conda run -p ~/envs/UAVarPrior_TF2170 python test_matrix_loading.py
 
 # Check if the run was successful
 if ($status == 0) then

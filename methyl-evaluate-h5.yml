@@ -38,7 +38,7 @@ evaluate_model: !obj:uavarprior.ModelEvaluator {
     trainedModelPath: /Users/sanjeev/Downloads/debug/uavarprior/model/DeepSEA/best_model.pth.tar
 }
 
-output_dir: /Users/sanjeev/Downloads/debug/fugep/eval/DeepSEA/
+output_dir: /Users/sanjeev/Downloads/debug/uavarprior/eval/DeepSEA/
 random_seed: 1447 # seed torch
 lr: 0.1
 create_subdirectory: False
