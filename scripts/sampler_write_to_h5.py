@@ -27,7 +27,7 @@ import os
 import h5py
 import numpy as np
 
-from fugep.utils import load_path, instantiate
+from uavarprior.utils import load_path, instantiate
 
 
 if __name__ == "__main__":

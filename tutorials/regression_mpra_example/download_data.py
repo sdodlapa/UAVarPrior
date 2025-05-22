@@ -7,7 +7,7 @@ import tarfile
 import numpy
 import pandas
 import scipy.io
-import fugep.sequences
+import uavarprior.sequences
 
 
 def run():
@@ -42,7 +42,7 @@ def run():
         x[k] = list()
         y[k] = list()
         for i in range(datasets[k].shape[0]):
-            x[k].append(fugep.sequences.Genome.sequence_to_encoding(datasets[k]["utr"].iloc[i]).T)
+            x[k].append(uavarprior.sequences.Genome.sequence_to_encoding(datasets[k]["utr"].iloc[i]).T)
             y[k].append(datasets[k][target_column].iloc[i])
         x[k] = numpy.stack(x[k])
         y[k] = numpy.asarray(y[k]).reshape(-1, 1)

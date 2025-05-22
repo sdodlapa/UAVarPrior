@@ -16,8 +16,8 @@ class MultiSampler(Sampler):
     that corresponds to training, validation, and testing (optional) modes.
     MultiSampler calls on the correct file sampler or data loader to draw
     samples for a given mode. Example file samplers are under
-    `fugep.samplers.file_samplers` and example data loaders are under
-    `fugep.samplers.dataloaders`.
+    `uavarprior.samplers.file_samplers` and example data loaders are under
+    `uavarprior.samplers.dataloaders`.
 
     MultiSampler can use either file samplers or data loaders for
     different modes. Using data loaders for some modes while using file samplers
@@ -29,8 +29,8 @@ class MultiSampler(Sampler):
 
     Parameters
     ----------
-    trainSampler : fugep.samplers.file_samplers.FileSampler or \
-                    fugep.samplers.dataloader.DataLoader
+    trainSampler : uavarprior.samplers.file_samplers.FileSampler or \
+                    uavarprior.samplers.dataloader.DataLoader
         Load your training data as a `FileSampler` or `DataLoader`
     validateSampler : FileSampler or DataLoader
         The validation dataset file sampler or data loader.

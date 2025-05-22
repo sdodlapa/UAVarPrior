@@ -12,8 +12,8 @@ model: {
     wrapper: UniSeqMWrapper,
 #    non_strand_specific: mean
 }
-sampler: !obj:fugep.samplers.MethylH5Sampler {
-    h5FileDir: /Users/sanjeev/Downloads/debug/fugep/data/temp/input2,
+sampler: !obj:uavarprior.samplers.MethylH5Sampler {
+    h5FileDir: /Users/sanjeev/Downloads/debug/uavarprior/data/temp/input2,
     batchSize: 8,
     test: [chr2],
     unpackSeq: True,
@@ -23,11 +23,11 @@ sampler: !obj:fugep.samplers.MethylH5Sampler {
     valOfMisInTarget: -1,
     seed: 1447,
     nWorkers: 0,
- #   features: !obj:fugep.utils.load_features_list {
+ #   features: !obj:uavarprior.utils.load_features_list {
  #       input_path: /data/hpc/projects/fgenom/ocl/train-data/rmdnase/hg19/debug/h5/data/distinct_features.txt
  #   }
 }
-evaluate_model: !obj:fugep.ModelEvaluator {
+evaluate_model: !obj:uavarprior.ModelEvaluator {
     batchSize: 8,
     nTestSamples: 320, # if not specified, all examples from test set will be used
     useCuda: False,
@@ -35,7 +35,7 @@ evaluate_model: !obj:fugep.ModelEvaluator {
     nMinMinorsReport: 1, # the minimum number of examples of minor class a feature to have to be included in the performance report
     loggingVerbosity: 2,
     preloadTestData: True,
-    trainedModelPath: /Users/sanjeev/Downloads/debug/fugep/model/DeepSEA/best_model.pth.tar
+    trainedModelPath: /Users/sanjeev/Downloads/debug/uavarprior/model/DeepSEA/best_model.pth.tar
 }
 
 output_dir: /Users/sanjeev/Downloads/debug/fugep/eval/DeepSEA/

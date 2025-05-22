@@ -1,5 +1,5 @@
 '''
-Setup and run fugep
+Setup and run uavarprior
 '''
 
 from .config import load

@@ -189,7 +189,7 @@ def initialize_model(model_configs, train=True, lr=None, configs=None):
 
 
         if "non_strand_specific" in model_configs:
-            from fugep.model import NonStrandSpecific
+            from uavarprior.model import NonStrandSpecific
             model = NonStrandSpecific(
                 model, mode=model_configs["non_strand_specific"])
 

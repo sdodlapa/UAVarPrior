@@ -1,8 +1,8 @@
 """
 This module provides the RandomPositionsSampler class.
 
-TODO: Currently, only works with sequences from `fugep.sequences.Genome`.
-We would like to generalize this to `fugep.sequences.Sequence` if possible.
+TODO: Currently, only works with sequences from `uavarprior.sequences.Genome`.
+We would like to generalize this to `uavarprior.sequences.Sequence` if possible.
 """
 from collections import namedtuple
 import logging
@@ -48,11 +48,11 @@ class RandomPositionsSampler(OnlineSampler):
     """This sampler randomly selects a position in the genome and queries for
     a sequence centered at that position for input to the model.
 
-    TODO: generalize to fugep.sequences.Sequence?
+    TODO: generalize to uavarprior.sequences.Sequence?
 
     Parameters
     ----------
-    reference_sequence : fugep.sequences.Genome
+    reference_sequence : uavarprior.sequences.Genome
         A reference sequence from which to create examples.
     target_path : str
         Path to tabix-indexed, compressed BED file (`*.bed.gz`) of genomic
@@ -94,7 +94,7 @@ class RandomPositionsSampler(OnlineSampler):
 
     Attributes
     ----------
-    reference_sequence : fugep.sequences.Genome
+    reference_sequence : uavarprior.sequences.Genome
         The reference sequence that examples are created from.
     target : fugep.targets.Target
         The `fugep.targets.Target` object holding the features that we
