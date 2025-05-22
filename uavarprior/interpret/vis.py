@@ -22,7 +22,7 @@ import plotly.graph_objs as go
 import seaborn as sns
 import tabix
 
-from ..sequences import Genome
+from ..data.sequences import Genome
 
 
 _SVG_PATHS = {'T': "M 0,100 l 100, 0 l 0,-25 l -37.5, 0 l 0,-75 l -25, 0 " +
