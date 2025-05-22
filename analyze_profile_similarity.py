@@ -10,15 +10,35 @@ import os
 import sys
 import numpy as np
 from scipy import sparse
-import matplotlib.pyplot as plt
-import seaborn as sns
+import importlib.util
+import pickle
 
-# Add parent directory to path to import the module
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from uavarprior.interpret.variant_analysis import (
-    load_profile_similarity_matrix,
-    visualize_profile_similarity
-)
+# Load the variant_analysis.py module directly rather than through the package
+# This avoids dependencies on the full UAVarPrior package
+module_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 
+                         'uavarprior/interpret/variant_analysis.py')
+
+if not os.path.exists(module_path):
+    print(f"Error: Could not find variant_analysis.py at {module_path}")
+    sys.exit(1)
+
+# Load the module directly using importlib
+spec = importlib.util.spec_from_file_location("variant_analysis", module_path)
+variant_analysis = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(variant_analysis)
+
+# Get the required functions from the module
+load_profile_similarity_matrix = variant_analysis.load_profile_similarity_matrix
+visualize_profile_similarity = variant_analysis.visualize_profile_similarity
+
+# Import matplotlib and seaborn for visualization if needed
+try:
+    import matplotlib.pyplot as plt
+    import seaborn as sns
+    has_visualization = True
+except ImportError:
+    print("Warning: matplotlib and/or seaborn not available. Visualization will be disabled.")
+    has_visualization = False
 
 def analyze_similarity_matrix(pred_model="pred1", group=1, output_dir=None):
     """
@@ -41,15 +61,20 @@ def analyze_similarity_matrix(pred_model="pred1", group=1, output_dir=None):
         verbose=True
     )
     
-    # Visualize the similarity matrix
-    print("\nVisualizing profile similarity matrix...")
-    output_file = os.path.join(output_dir, f'similarity_heatmap_{pred_model}_group_{group}.png')
-    visualize_profile_similarity(
-        similarity_matrix=similarity_matrix,
-        files=files,
-        sample_size=50,  # Sample 50 profiles for visualization
-        output_file=output_file
-    )
+    # Visualize the similarity matrix if visualization libraries are available
+    if has_visualization:
+        print("\nVisualizing profile similarity matrix...")
+        output_file = os.path.join(output_dir, f'similarity_heatmap_{pred_model}_group_{group}.png')
+        visualize_profile_similarity(
+            similarity_matrix=similarity_matrix,
+            files=files,
+            sample_size=50,  # Sample 50 profiles for visualization
+            output_file=output_file
+        )
+    else:
+        print("\nSkipping visualization due to missing libraries.")
+        print(f"To enable visualization, install matplotlib and seaborn:")
+        print("  conda install -c conda-forge matplotlib seaborn")
     
     # Calculate additional statistics
     print("\nCalculating additional statistics...")
