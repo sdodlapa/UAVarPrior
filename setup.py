@@ -11,20 +11,20 @@ with open(os.path.join(os.path.dirname(__file__), "README.md"),
     long_description = readme.read()
 
 genome_module = Extension(
-    "fugep.data.sequences._sequence",
-    ["fugep/data/sequences/_sequence.pyx"],
+    "uavarprior.data.sequences._sequence",
+    ["uavarprior/data/sequences/_sequence.pyx"],
     include_dirs=[np.get_include()])
 
 genomic_features_module = Extension(
-    "fugep.data.targets._genomic_features",
-    ["fugep/data/targets/_genomic_features.pyx"],
+    "uavarprior.data.targets._genomic_features",
+    ["uavarprior/data/targets/_genomic_features.pyx"],
     include_dirs=[np.get_include()])
 
 ext_modules = [genome_module, genomic_features_module]
 cmdclass = {'build_ext': build_ext}
 
 setup(name="uavarprior",
-      version="0.4.8",
+      version="0.1.0-dev",
       long_description=long_description,
       long_description_content_type='text/markdown',
       description=("framework for developing sequence-level "
@@ -32,11 +32,11 @@ setup(name="uavarprior",
       packages=find_packages(),
       url="https://github.com/FunctionLab/selene",
       package_data={
-          "fugep.interpret": [
+          "uavarprior.interpret": [
               "data/gencode_v28_hg38/*",
               "data/gencode_v28_hg19/*"
           ],
-          "fugep.sequences": [
+          "uavarprior.sequences": [
               "data/*"
           ]
       },

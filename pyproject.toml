@@ -3,4 +3,5 @@ requires = ["setuptools", "wheel", "numpy", "cython"]
 
 [project]
 name = "uavarprior"
+version = "0.1.0-dev"
 # ...other metadata...
