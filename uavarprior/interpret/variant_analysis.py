@@ -250,6 +250,129 @@ def build_membership_matrix(variant_names: Set[str], directory: str, verbose: bo
     return membership_matrix, files, name_to_idx
 
 
+def save_membership_matrix(
+    matrix: sparse.csr_matrix,
+    files: List[str],
+    name_to_idx: Dict[str, int],
+    pred_model: str,
+    group: int,
+    output_dir: str = None
+) -> None:
+    """
+    Save the membership matrix and associated data to files.
+    
+    Args:
+        matrix: Binary membership matrix (variants × files)
+        files: List of file names
+        name_to_idx: Mapping of variant names to row indices
+        pred_model: Prediction model identifier (e.g., 'pred1', 'pred150')
+        group: Group number
+        output_dir: Output directory for saving results
+        
+    Returns:
+        None
+    """
+    # Set default output directory if not provided
+    if output_dir is None:
+        output_dir = os.path.join(os.getcwd(), 'outputs')
+        
+    os.makedirs(output_dir, exist_ok=True)
+    
+    # Save the sparse matrix
+    matrix_file = os.path.join(output_dir, f'membership_matrix_{pred_model}_group_{group}.npz')
+    sparse.save_npz(matrix_file, matrix)
+    
+    # Save the files list
+    files_file = os.path.join(output_dir, f'files_list_{pred_model}_group_{group}.pkl')
+    with open(files_file, 'wb') as f:
+        pickle.dump(files, f)
+    
+    # Save the name to index mapping
+    name_to_idx_file = os.path.join(output_dir, f'name_to_idx_{pred_model}_group_{group}.pkl')
+    with open(name_to_idx_file, 'wb') as f:
+        pickle.dump(name_to_idx, f)
+    
+    print(f"Saved membership matrix and associated data to {output_dir}")
+
+
+def load_membership_matrix(
+    pred_model: str,
+    group: int,
+    output_dir: str = None,
+    verbose: bool = True
+) -> Tuple[sparse.csr_matrix, List[str], Dict[str, int]]:
+    """
+    Load the membership matrix and associated data from files.
+    
+    Args:
+        pred_model: Prediction model identifier (e.g., 'pred1', 'pred150')
+        group: Group number
+        output_dir: Output directory containing saved files
+        verbose: If True, print information about loaded data
+        
+    Returns:
+        Tuple containing:
+        - sparse.csr_matrix: Binary membership matrix (variants × files)
+        - List[str]: List of file names
+        - Dict[str, int]: Mapping of variant names to row indices
+    """
+    # Set default output directory if not provided
+    if output_dir is None:
+        output_dir = os.path.join(os.getcwd(), 'outputs')
+    
+    # Load the sparse matrix
+    matrix_file = os.path.join(output_dir, f'membership_matrix_{pred_model}_group_{group}.npz')
+    matrix = sparse.load_npz(matrix_file)
+    
+    # Load the files list
+    files_file = os.path.join(output_dir, f'files_list_{pred_model}_group_{group}.pkl')
+    with open(files_file, 'rb') as f:
+        files = pickle.load(f)
+    
+    # Load the name to index mapping
+    name_to_idx_file = os.path.join(output_dir, f'name_to_idx_{pred_model}_group_{group}.pkl')
+    with open(name_to_idx_file, 'rb') as f:
+        name_to_idx = pickle.load(f)
+    
+    if verbose:
+        print(f"\nLoaded membership matrix with shape {matrix.shape} (variants × files)")
+        print(f"Number of non-zero elements: {matrix.count_nonzero()} (variant occurrences)")
+        sparsity = 100 - 100 * matrix.count_nonzero() / (matrix.shape[0] * matrix.shape[1])
+        print(f"Sparsity: {sparsity:.2f}%")
+        print(f"Memory usage: {matrix.data.nbytes / 1024**2:.2f} MB (data)")
+        print(f"Loaded {len(files)} files and {len(name_to_idx)} variant names")
+    
+    return matrix, files, name_to_idx
+
+
+def check_membership_matrix_exists(
+    pred_model: str,
+    group: int,
+    output_dir: str = None
+) -> bool:
+    """
+    Check if a previously computed membership matrix exists in the output directory.
+    
+    Args:
+        pred_model: Prediction model identifier (e.g., 'pred1', 'pred150')
+        group: Group number
+        output_dir: Output directory to check
+        
+    Returns:
+        bool: True if all required files exist, False otherwise
+    """
+    # Set default output directory if not provided
+    if output_dir is None:
+        output_dir = os.path.join(os.getcwd(), 'outputs')
+    
+    # Check if all required files exist
+    matrix_file = os.path.join(output_dir, f'membership_matrix_{pred_model}_group_{group}.npz')
+    files_file = os.path.join(output_dir, f'files_list_{pred_model}_group_{group}.pkl')
+    name_to_idx_file = os.path.join(output_dir, f'name_to_idx_{pred_model}_group_{group}.pkl')
+    
+    return os.path.isfile(matrix_file) and os.path.isfile(files_file) and os.path.isfile(name_to_idx_file)
+
+
 # Analysis functions
 def analyze_membership_matrix(
     matrix: sparse.csr_matrix, 
@@ -565,7 +688,8 @@ def process_prediction_model(
     input_path: str,
     maf_data: pd.DataFrame,
     save_results: bool = True,
-    output_dir: str = None
+    output_dir: str = None,
+    use_cached_matrix: bool = True
 ) -> Tuple[List[str], List[str]]:
     """
     Process a prediction model to identify cell-specific and cell-nonspecific variants.
@@ -577,6 +701,7 @@ def process_prediction_model(
         maf_data: DataFrame with MAF data
         save_results: If True, save results to files
         output_dir: Output directory for saving results
+        use_cached_matrix: If True, try to load previously computed membership matrix
     
     Returns:
         Tuple containing:
@@ -585,13 +710,32 @@ def process_prediction_model(
     """
     print(f"\n{'='*80}\nProcessing {model_name} (Group {group})\n{'='*80}")
     
-    # Step 1: Collect unique variants
-    print("\nStep 1: Collecting unique variants...")
-    unique_names = collect_unique_variants(input_path)
-    
-    # Step 2: Build membership matrix
-    print("\nStep 2: Building membership matrix...")
-    membership_matrix, files, name_to_idx = build_membership_matrix(unique_names, input_path)
+    # Check if membership matrix already exists
+    if use_cached_matrix and check_membership_matrix_exists(model_name, group, output_dir):
+        print("\nFound existing membership matrix. Loading from files...")
+        membership_matrix, files, name_to_idx = load_membership_matrix(
+            model_name, group, output_dir
+        )
+    else:
+        # Step 1: Collect unique variants
+        print("\nStep 1: Collecting unique variants...")
+        unique_names = collect_unique_variants(input_path)
+        
+        # Step 2: Build membership matrix
+        print("\nStep 2: Building membership matrix...")
+        membership_matrix, files, name_to_idx = build_membership_matrix(unique_names, input_path)
+        
+        # Save the membership matrix for future use
+        if save_results:
+            print("\nSaving membership matrix for future use...")
+            save_membership_matrix(
+                membership_matrix, 
+                files, 
+                name_to_idx,
+                model_name, 
+                group, 
+                output_dir
+            )
     
     # Step 3: Analyze membership matrix
     print("\nStep 3: Analyzing membership matrix...")
@@ -631,7 +775,7 @@ def process_prediction_model(
     return cell_specific_variants, cell_nonspecific_variants
 
 
-def run_full_analysis(group: int = 1, save_results: bool = True, output_dir: str = None, model: str = "both") -> Dict:
+def run_full_analysis(group: int = 1, save_results: bool = True, output_dir: str = None, model: str = "both", use_cached_matrix: bool = True) -> Dict:
     """
     Run the full analysis pipeline for both prediction models.
     
@@ -671,7 +815,7 @@ def run_full_analysis(group: int = 1, save_results: bool = True, output_dir: str
     if model in ["pred150", "both"]:
         pred150_path = f'/home/sdodl001/Desktop/DNA_Methylation_Scripts/cpg_util_scripts/data/kmeans/uncert_gve_direction/{group}/pred200_merged/'
         cell_specific_variants_pred150, cell_nonspecific_variants_pred150 = process_prediction_model(
-            group, 'pred150', pred150_path, maf_data, save_results, output_dir
+            group, 'pred150', pred150_path, maf_data, save_results, output_dir, use_cached_matrix=use_cached_matrix
         )
     
     # Process pred1 model if requested
@@ -679,7 +823,7 @@ def run_full_analysis(group: int = 1, save_results: bool = True, output_dir: str
         thr = 0.10
         pred1_path = f'/scratch/ml-csm/projects/fgenom/gve/output/kmeans/pred1/aggr/thr{thr}/{group}/'
         cell_specific_variants_pred1, cell_nonspecific_variants_pred1 = process_prediction_model(
-            group, 'pred1', pred1_path, maf_data, save_results, output_dir
+            group, 'pred1', pred1_path, maf_data, save_results, output_dir, use_cached_matrix=use_cached_matrix
         )
     
     # Return all results
@@ -710,6 +854,8 @@ if __name__ == "__main__":
                         help="Don't save results to files")
     parser.add_argument("--model", type=str, choices=["pred1", "pred150", "both"], default="both",
                        help="Which prediction model to process (default: both)")
+    parser.add_argument("--rebuild-matrix", action="store_true",
+                        help="Always rebuild the membership matrix even if a cached one exists")
     
     # Parse command line arguments
     args = parser.parse_args()
@@ -726,11 +872,13 @@ if __name__ == "__main__":
         print("Results will not be saved (--no-save flag is set)")
         
     # Run the analysis with the specified parameters
+    # Note: use_cached_matrix is the opposite of rebuild_matrix
     results = run_full_analysis(
         group=args.group,
         save_results=not args.no_save,
         output_dir=args.output_dir,
-        model=args.model
+        model=args.model,
+        use_cached_matrix=not args.rebuild_matrix
     )
     
     print("\nAnalysis complete!")
