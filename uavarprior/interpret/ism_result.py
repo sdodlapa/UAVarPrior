@@ -6,7 +6,7 @@ an *in silico* mutagenesis experiment.
 import numpy as np
 import pandas as pd
 
-from ..sequences import Genome
+from ..data.sequences import Genome
 
 
 class ISMResult(object):
