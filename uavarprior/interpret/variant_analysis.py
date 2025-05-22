@@ -347,6 +347,59 @@ def analyze_maf_distribution(df_maf: pd.DataFrame, variant_names: List[str]) -> 
     return rare_count, common_count, undefined_count
 
 
+def calculate_variant_profile_counts(
+    matrix: sparse.csr_matrix, 
+    name_to_idx: Dict[str, int],
+    pred_model: str,
+    group: int,
+    output_dir: str = None
+) -> pd.DataFrame:
+    """
+    Calculate for each variant the number of profiles (cells) in which it appears.
+    
+    Args:
+        matrix: Binary membership matrix (variants × files)
+        name_to_idx: Mapping of variant names to row indices
+        pred_model: Prediction model identifier (e.g., 'pred1', 'pred150')
+        group: Group number
+        output_dir: Output directory for saving results
+        
+    Returns:
+        pd.DataFrame: DataFrame with variant names and their profile counts
+    """
+    # Count how many files each variant appears in (row sums)
+    variant_file_counts = matrix.sum(axis=1).A1  # A1 converts to 1D array
+    
+    # Create a reverse mapping from indices to variant names
+    idx_to_name = {idx: name for name, idx in name_to_idx.items()}
+    
+    # Create a list of (variant_name, profile_count) tuples
+    variant_counts = [(idx_to_name[idx], count) for idx, count in enumerate(variant_file_counts)]
+    
+    # Create a DataFrame
+    df_counts = pd.DataFrame(variant_counts, columns=['variant_id', 'profile_count'])
+    
+    # If output directory is provided, save the DataFrame
+    if output_dir:
+        # Create output directory if it doesn't exist
+        if output_dir is None:
+            output_dir = os.path.join(os.getcwd(), 'outputs')
+            
+        os.makedirs(output_dir, exist_ok=True)
+        
+        # Save as CSV
+        csv_path = os.path.join(output_dir, f'variant_profile_counts_{pred_model}_group_{group}.csv')
+        df_counts.to_csv(csv_path, index=False)
+        print(f"Saved variant profile counts to: {csv_path}")
+        
+        # Save as parquet for more efficient storage and retrieval
+        parquet_path = os.path.join(output_dir, f'variant_profile_counts_{pred_model}_group_{group}.parquet')
+        df_counts.to_parquet(parquet_path, index=False)
+        print(f"Saved variant profile counts to: {parquet_path}")
+    
+    return df_counts
+
+
 # File operations
 def save_variant_lists(
     cell_specific_variants: List[str],
@@ -474,6 +527,8 @@ For each prediction model (`pred1`, `pred150`) and group number, the following f
 - `cell_specific_variants_<model>_group_<n>.txt`: Text file with the same variant names, one per line
 - `cell_nonspecific_variants_<model>_group_<n>.pkl`: Pickle file containing cell-nonspecific variant names (appearing in at least 80 files)
 - `cell_nonspecific_variants_<model>_group_<n>.txt`: Text file with the same variant names, one per line
+- `variant_profile_counts_<model>_group_<n>.csv`: CSV file containing counts of how many profiles (cells) each variant appears in
+- `variant_profile_counts_<model>_group_<n>.parquet`: Parquet file with the same data for efficient storage and retrieval
 
 ## Analysis Date
 
@@ -551,9 +606,19 @@ def process_prediction_model(
     print("\nStep 4: Analyzing MAF distribution for cell-nonspecific variants...")
     analyze_maf_distribution(maf_data, cell_nonspecific_variants)
     
-    # Step 5: Save results if requested
+    # Step 5: Calculate and save variant profile counts
+    print("\nStep 5: Calculating and saving variant profile counts...")
+    calculate_variant_profile_counts(
+        membership_matrix,
+        name_to_idx,
+        model_name,
+        group,
+        output_dir
+    )
+    
+    # Step 6: Save results if requested
     if save_results:
-        print("\nStep 5: Saving results...")
+        print("\nStep 6: Saving results...")
         save_variant_lists(
             cell_specific_variants,
             cell_nonspecific_variants,
