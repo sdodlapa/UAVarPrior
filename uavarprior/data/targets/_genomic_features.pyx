@@ -4,7 +4,8 @@ import numpy as np
 cimport cython
 cimport numpy as np
 
-ctypedef np.int_t DTYPE_t
+# Use np.int32_t or np.int64_t instead of deprecated np.int_t
+ctypedef np.int64_t DTYPE_t
 ctypedef np.float32_t FDTYPE_t
 
 @cython.boundscheck(False)

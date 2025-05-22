@@ -14,6 +14,15 @@ endif
 
 echo "Using crun to install package..."
 which crun
-crun -p ~/envs/UAVarPrior/ pip install -e .
+
+# Clean up any previous build files that might be causing issues
+echo "Cleaning up previous build files..."
+rm -rf build dist *.egg-info
+rm -f uavarprior/data/sequences/_sequence.c
+rm -f uavarprior/data/targets/_genomic_features.c
+
+# Install with verbose output
+echo "Installing package..."
+crun -p ~/envs/UAVarPrior/ pip install -e . -v
 
 echo "Installation complete. Check for any errors above."

@@ -1,0 +1,2 @@
+IMPORT ERROR: No module named 'pydantic'
+Python path: ['/home/sdodl001/UAVarPrior', '/opt/conda/lib/python310.zip', '/opt/conda/lib/python3.10', '/opt/conda/lib/python3.10/lib-dynload', '/home/sdodl001/envs/UAVarPrior/lib/python3.10/site-packages', '/opt/conda/lib/python3.10/site-packages']
