@@ -476,9 +476,22 @@ def parse_configs_and_run(configs: Dict[str, Any]) -> None:
         
         # Initialize model
         logger.info(f"Initializing model: {model_config.get('name', 'unknown')}")
-        model = get_model(model_config)
-        model.to(device)
-        
+        net = get_model(model_config)
+        net.to(device)
+        # wrap network in the specified wrapper (provides optimizer API)
+        wrapper = initializeWrapper(
+            model_config['wrapper'],
+            mode='train',
+            model=net,
+            lossCalculator=None,
+            model_built=model_config.get('built', 'pytorch'),
+            mult_predictions=model_config.get('mult_predictions', 1),
+            useCuda=(device == 'cuda'),
+            optimizerClass=None,
+            optimizerKwargs=None
+        )
+        model = wrapper
+
         # Setup training
         logger.info("Setting up training...")
         trainer = StandardSGDTrainer(
@@ -497,7 +510,7 @@ def parse_configs_and_run(configs: Dict[str, Any]) -> None:
         mode = configs.get("mode", "train")
         if mode == "train":
             logger.info("Starting training...")
-            trainer.train()
+            trainer.trainAndValidate()
         elif mode == "evaluate":
             logger.info("Starting evaluation...")
             trainer.evaluate()

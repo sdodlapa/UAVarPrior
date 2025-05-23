@@ -324,11 +324,13 @@ class SGDTrainer(metaclass = ABCMeta):
         self._trainLogger = _metricsLogger(
                 "train", self.outputDir)
         self._trainLogger.info("loss")
-        if self._useScheduler:
-            # self.scheduler = self.scheduler_dict[self.schedulerName]
+        # initialize learning rate scheduler only if optimizer API exists
+        if self._useScheduler and hasattr(self.model, 'getOptimizer'):
             self.scheduler = lr_scheduler.ReduceLROnPlateau(
                                  self.model.getOptimizer(), 'min',
                                  patience=2, factor=0.7)
+        else:
+            self.scheduler = None
         self._timePerStep = []
         self._trainLoss = LossTracker()
 
@@ -634,5 +636,5 @@ ng
 
 
 
-    
+
 
