@@ -465,22 +465,42 @@ def parse_configs_and_run(configs: Dict[str, Any]) -> None:
         model_config = configs.get("model", {})
         training_config = configs.get("training", {})
         metrics = training_config.get("metrics", [])
-        
-        # Initialize dataset
-        logger.info("Initializing dataset...")
-        # TODO: Fix missing get_dataset and get_dataloader functions
-        # dataset = get_dataset(data_config)
-        # dataloader = get_dataloader(dataset, training_config.get("batch_size", 32))
-        dataset = None  # Placeholder until get_dataset is implemented
-        dataloader = None  # Placeholder until get_dataloader is implemented
+        # Output directory
+        output_dir = configs.get("output_dir", None)
+
+         # Initialize sampler as data source and loader
+        logger.info("Initializing sampler")
+        sampler_info = configs.get("sampler")
+        if sampler_info is None:
+            raise ValueError("Sampler configuration is missing in 'sampler'")
+        sampler = instantiate(sampler_info)
         
         # Initialize and wrap model (handles network, loss, optimizer, wrapper)
         logger.info(f"Initializing model wrapper: {model_config.get('name', 'unknown')}")
+        
+        # Get learning rate and ensure it's a float
+        lr_value = training_config.get('lr')
+        if lr_value is not None:
+            try:
+                lr_value = float(lr_value)
+            except (ValueError, TypeError):
+                raise ValueError(f"Learning rate must be a valid number, but got: {lr_value}")
+        else:
+            # If learning rate from training_config is None, try to get it from the top-level configs
+            lr_value = configs.get('lr')
+            if lr_value is not None:
+                try:
+                    lr_value = float(lr_value)
+                except (ValueError, TypeError):
+                    raise ValueError(f"Learning rate must be a valid number, but got: {lr_value}")
+            else:
+                logger.warning("No learning rate specified in config. This may cause issues if training is enabled.")
+                
         # initialize_model returns a wrapper with getOptimizer, setOptimizer, etc.
         model = initialize_model(
             model_config,
             train=True,
-            lr=training_config.get('lr'),
+            lr=lr_value,
             configs=configs
         )
 
@@ -488,7 +508,7 @@ def parse_configs_and_run(configs: Dict[str, Any]) -> None:
         logger.info("Setting up training...")
         trainer = StandardSGDTrainer(
             model=model,
-            dataSampler=dataloader,
+            dataSampler=sampler,
             outputDir=configs.get("output_dir"),
             maxNSteps=training_config.get("max_steps", None),
             batchSize=training_config.get("batch_size", 64),
