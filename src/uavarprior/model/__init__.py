@@ -79,4 +79,7 @@ def get_model(config: Dict[str, Any]):
             raise ValueError(f"Model class not found in module: {model_name}")
     # Only pass the intended constructor args, not the config keys
     class_args = config.get("classArgs", {}) or {}
+    # Handle legacy key naming for Sei
+    if model_name in ("Sei", "SeiHalf") and "n_targets" in class_args:
+        class_args["n_genomic_features"] = class_args.pop("n_targets")
     return model_class(**class_args)
