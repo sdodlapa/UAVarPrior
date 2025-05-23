@@ -482,24 +482,28 @@ def parse_configs_and_run(configs: Dict[str, Any]) -> None:
         logger.info("Setting up training...")
         trainer = StandardSGDTrainer(
             model=model,
-            dataloader=dataloader,
-            config=training_config,
-            device=device
+            dataSampler=dataloader,
+            outputDir=configs.get("output_dir"),
+            maxNSteps=training_config.get("max_steps", None),
+            batchSize=training_config.get("batch_size", 64),
+            useCuda=(device == "cuda"),
+            dataParallel=training_config.get("data_parallel", False),
+            loggingVerbosity=training_config.get("logging_verbosity", 2)
         )
-        
-        # Run training or inference based on mode
-        mode = configs.get("mode", "train")
-        if mode == "train":
-            logger.info("Starting training...")
-            trainer.train()
-        elif mode == "evaluate":
-            logger.info("Starting evaluation...")
-            trainer.evaluate()
-        elif mode == "predict":
-            logger.info("Starting prediction...")
-            trainer.predict()
-        else:
-            raise ValueError(f"Unknown execution mode: {mode}")
+    
+    # Run training or inference based on mode
+    mode = configs.get("mode", "train")
+    if mode == "train":
+        logger.info("Starting training...")
+        trainer.train()
+    elif mode == "evaluate":
+        logger.info("Starting evaluation...")
+        trainer.evaluate()
+    elif mode == "predict":
+        logger.info("Starting prediction...")
+        trainer.predict()
+    else:
+        raise ValueError(f"Unknown execution mode: {mode}")
             
     except Exception as e:
         logger.error(f"Execution failed: {str(e)}")
