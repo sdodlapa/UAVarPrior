@@ -65,7 +65,6 @@ def get_model(config: Dict[str, Any]):
     model_name = config.get("name")
     if not model_name:
         raise ValueError("Model name not specified in configuration")
-    # Delegate to loadNnModule to handle correct module paths (lowercasing, aliases)
     try:
         module = loadNnModule(model_name)
     except Exception as e:
@@ -78,4 +77,6 @@ def get_model(config: Dict[str, Any]):
             model_class = getattr(module, model_name)
         else:
             raise ValueError(f"Model class not found in module: {model_name}")
-    return model_class(**config)
+    # Only pass the intended constructor args, not the config keys
+    class_args = config.get("classArgs", {}) or {}
+    return model_class(**class_args)
