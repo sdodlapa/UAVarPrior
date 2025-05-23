@@ -6,6 +6,7 @@ running operations in _Selene_.
 import os
 import importlib
 import sys
+import re
 from time import strftime
 import types
 import torch
@@ -435,29 +436,86 @@ def execute(configs):
                 evaluate_model.evaluate()
 
         elif op == "analyze":
+            logger.info("Processing analyze operation")
             if not model:
-                # TO DO: check argements and allow only the arguments class expects
-                model = initialize_model(configs["model"], train = False)
+                logger.info("No model already loaded, initializing model from config")
+                try:
+                    # lr=None because we don't need optimizer for analysis
+                    model_config = configs["model"]
+                    # Add debugging information
+                    logger.debug(f"Model config before initialization: {model_config}")
+                    
+                    # Check if model_config is a dictionary and has required fields
+                    if isinstance(model_config, dict) and "built" in model_config and "wrapper" in model_config:
+                        model = initialize_model(model_config, train=False, lr=None, configs=configs)
+                        logger.info("Model initialized successfully")
+                    else:
+                        # More detailed error message for debugging
+                        logger.error(f"Invalid model configuration: {model_config}")
+                        raise ValueError(f"Model configuration must be a dictionary with 'built' and 'wrapper' keys")
+                except Exception as e:
+                    logger.error(f"Failed to initialize model: {str(e)}")
+                    raise
             
             # construct analyzer
+            logger.info("Setting up analyzer")
             analyze_seqs_info = configs["analyzer"]
-            analyze_seqs_info.bind(model = model)
-            if output_dir is not None:
-                    analyze_seqs_info.bind(outputDir = output_dir)
-            analyze_seqs = instantiate(analyze_seqs_info)
             
+            # Check if analyze_seqs_info is a proxy object or a dict
+            if hasattr(analyze_seqs_info, 'bind'):
+                # It's a _Proxy object with bind method
+                analyze_seqs_info.bind(model=model)
+                if output_dir is not None:
+                    analyze_seqs_info.bind(outputDir=output_dir)
+                analyze_seqs = instantiate(analyze_seqs_info)
+            else:
+                # It's a plain dict, we need to add model and outputDir to the dict
+                logger.info("Analyzer config is a dictionary, adding parameters directly")
+                if isinstance(analyze_seqs_info, dict):
+                    analyze_seqs_info['model'] = model
+                    if output_dir is not None:
+                        analyze_seqs_info['outputDir'] = output_dir
+                    # Now instantiate the class directly
+                    try:
+                        # Use the class name from the dict directly
+                        class_path = analyze_seqs_info.pop('class', None)
+                        if not class_path and '!obj:' in str(analyze_seqs_info):
+                            # Try to extract from YAML tag if available
+                            yaml_repr = str(analyze_seqs_info)
+                            match = re.search(r'!obj:([\w\.]+)', yaml_repr)
+                            if match:
+                                class_path = match.group(1)
+                        
+                        if class_path:
+                            logger.info(f"Instantiating analyzer from class path: {class_path}")
+                            module_path, class_name = class_path.rsplit('.', 1)
+                            module = importlib.import_module(module_path)
+                            class_obj = getattr(module, class_name)
+                            analyze_seqs = class_obj(**analyze_seqs_info)
+                        else:
+                            raise ValueError("Could not determine analyzer class from configuration")
+                    except Exception as e:
+                        logger.error(f"Failed to instantiate analyzer: {str(e)}")
+                        raise
+                else:
+                    raise TypeError(f"Expected analyzer config to be a dict or proxy object, got {type(analyze_seqs_info).__name__}")
+            
+            logger.info("Analyzer set up complete, determining analysis type")
             if "variant_effect_prediction" in configs:
+                logger.info("Running variant effect prediction analysis")
                 analyze_seqs.evaluate()
             elif "in_silico_mutagenesis" in configs:
+                logger.info("Running in silico mutagenesis")
                 ism_info = configs["in_silico_mutagenesis"]
                 analyze_seqs.evaluate(**ism_info)
             elif "prediction" in configs:
+                logger.info("Running prediction")
                 predict_info = configs["prediction"]
                 analyze_seqs.predict(**predict_info)
             else:
                 raise ValueError('The type of analysis needs to be specified. It can '
-                                 'either be variant_effect_prediction, in_silico_mutagenesis '
-                                 'or prediction')
+                               'either be variant_effect_prediction, in_silico_mutagenesis '
+                               'or prediction')
 
 
 def parse_configs_and_run(configs: Dict[str, Any]) -> None:
@@ -467,9 +525,14 @@ def parse_configs_and_run(configs: Dict[str, Any]) -> None:
         configs: Dictionary containing configuration parameters
     """
     try:
+        # Add import re if needed
+        import re
+        
         # Check if this is a legacy FuGEP-style config and handle accordingly
-        if "ops" in configs and "sampler" in configs and not configs.get("sampler", {}).get("uavarprior", False):
-            logger.info("Detected FuGEP-style configuration format. Using backward compatibility mode.")
+        if "ops" in configs:
+            # This is a legacy configuration format
+            ops = configs.get("ops", [])
+            logger.info(f"Detected legacy configuration format with operations: {ops}")
             return execute(configs)
             
         # Check for CUDA availability and set device
@@ -491,23 +554,18 @@ def parse_configs_and_run(configs: Dict[str, Any]) -> None:
         # Debug logging to see what's in the configs
         logger.debug(f"Available config keys: {list(configs.keys())}")
         if not sampler_info:
-            # Check if this is coming from the old-style configuration
-            if "ops" in configs:
-                ops = configs.get("ops", [])
-                if any(op in ops for op in ["train", "evaluate", "analyze"]):
-                    logger.warning(f"Found 'ops' with operations {ops} but no 'sampler' - using legacy configuration format.")
-                    logger.info("Using execute() function for backward compatibility")
-                    return execute(configs)
-                else:
-                    logger.debug(f"Found 'ops' but with unknown operations: {ops}")
-            
             # If it's not a clear legacy config but has analyzer section, it's likely an analyze-only config
-            if "analyzer" in configs and "variant_effect_prediction" in configs:
+            if "analyzer" in configs and ("variant_effect_prediction" in configs or 
+                                         "in_silico_mutagenesis" in configs or
+                                         "prediction" in configs):
                 logger.info("Detected analyze-only configuration. Using execute() function.")
-                return execute(configs)
+                temp_configs = configs.copy()
+                temp_configs["ops"] = ["analyze"]  # Add ops to make execute work
+                return execute(temp_configs)
                 
             # If we get here, the config doesn't have a valid structure
             raise ValueError("Invalid configuration: Missing 'sampler' key and not a recognized legacy format. Check your YAML structure.")
+        
         sampler = instantiate(sampler_info)
         
         # Get learning rate and ensure it's a float

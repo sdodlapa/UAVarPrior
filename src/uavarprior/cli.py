@@ -48,6 +48,17 @@ def run(config_path: str, override: Optional[tuple], debug: bool):
         
         logging.debug(f"Configuration loaded with keys: {list(configs.keys())}")
         
+        # Add debugging output to see the config structure
+        logger = logging.getLogger("uavarprior.cli")
+        logger.info(f"Loaded configuration file from: {config_path}")
+        logger.info(f"Configuration keys: {list(configs.keys())}")
+        if "ops" in configs:
+            logger.info(f"Operations to perform: {configs['ops']}")
+        if "variant_effect_prediction" in configs:
+            logger.info("Found variant_effect_prediction configuration")
+        if "analyzer" in configs:
+            logger.info("Found analyzer configuration")
+        
         # Apply command line overrides to configuration
         if override:
             for o in override:

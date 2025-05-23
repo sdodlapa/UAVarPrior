@@ -1,0 +1,40 @@
+ops: [analyze]
+
+model:
+  name: Sei
+  class: Sei
+  classArgs:
+    sequence_length: 4096
+    n_targets: 21907
+  built: pytorch
+  mult_predictions: 5
+  wrapper: UniSeqMWrapper
+  non_strand_specific: mean
+
+analyzer: 
+  class: uavarprior.predict.PeakGVarEvaluator
+  analysis:
+    - mean_gve
+    - pval
+  refSeq:
+    class: uavarprior.data.Genome
+    input_path: /scratch/ml-csm/datasets/genomics/ref-genome/human/GRCh38/ensembl/sequence/Homo_sapiens.GRCh38.dna.primary_assembly.fa
+  vcfFile: /scratch/ml-csm/projects/fgenom/gve/data/comb_chunks/variant_chunk_001.tsv
+  strandIdx: 5
+  seqLen: 4096
+  batchSize: 64
+  useCuda: false
+  dataParallel: true
+  loggingVerbosity: 0
+  writeMemLimit: 500
+  save_mult_pred: true
+  outputFormat: tsv
+  trainedModelPath: /home/sdodl001/sei-framework/sei.pth
+  features:
+    class: uavarprior.utils.load_features_list
+    input_path: /home/sdodl001/sei-framework/target.names
+
+variant_effect_prediction: {}
+output_dir: /scratch/ml-csm/projects/fgenom/gve/output/kmeans/sei/comb_chunks/variant_chunk_001
+random_seed: 1447
+create_subdirectory: false
