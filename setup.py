@@ -29,7 +29,8 @@ setup(name="uavarprior",
       long_description_content_type='text/markdown',
       description=("framework for developing sequence-level "
                    "deep learning networks"),
-      packages=find_packages(),
+      packages=find_packages('src'),
+      package_dir={'': 'src'},
       url="https://github.com/FunctionLab/selene",
       package_data={
           "uavarprior.interpret": [
