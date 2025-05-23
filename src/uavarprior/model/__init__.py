@@ -82,4 +82,10 @@ def get_model(config: Dict[str, Any]):
     # Handle legacy key naming for Sei
     if model_name in ("Sei", "SeiHalf") and "n_targets" in class_args:
         class_args["n_genomic_features"] = class_args.pop("n_targets")
-    return model_class(**class_args)
+    model_instance = model_class(**class_args)
+    # Provide a toUseCuda method expected by StandardSGDTrainer
+    import types
+    def _toUseCuda(self):
+        return self.cuda()
+    model_instance.toUseCuda = types.MethodType(_toUseCuda, model_instance)
+    return model_instance
