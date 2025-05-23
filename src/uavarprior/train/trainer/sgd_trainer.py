@@ -10,6 +10,8 @@ import os
 import shutil
 from time import strftime
 from time import time
+from datetime import datetime
+import json
 
 import numpy as np
 import torch
@@ -456,35 +458,50 @@ ng
             if False, the loaded checkpoint is returned for continuation of
             the loading
         '''
-        checkpoint = torch.load(
-            filepath,
-            map_location = lambda storage, location: storage)
-        if "state_dict" not in checkpoint:
-            raise ValueError(
-                ("'state_dict' not found in file {0} "
-                 "loaded with method `torch.load`. Fugep does not support "
-                 "continued training of models that were not originally "
-                 "trained using Fugep.").format(filepath))
+        try:
+            checkpoint = torch.load(
+                filepath,
+                map_location = lambda storage, location: storage)
+            
+            if "state_dict" not in checkpoint:
+                raise ValueError(
+                    ("'state_dict' not found in file {0}. "
+                     "UAVarPrior does not support continued training of models "
+                     "that were not originally trained using UAVarPrior.").format(filepath))
 
-        self.model.init(checkpoint["state_dict"])
+            # Initialize model state
+            self.model.init(checkpoint["state_dict"])
 
-        self._startStep = checkpoint["step"]
-        if self._startStep >= self.maxNSteps:
-            self.maxNSteps += self._startStep
+            # Update training state
+            self._startStep = checkpoint["step"]
+            if self._startStep >= self.maxNSteps:
+                self.maxNSteps += self._startStep
 
-        self._minLoss = checkpoint["min_loss"]
-        if not self.changeOptim:
-            self.model.initOptim(checkpoint["optimizer"])
-        if 'cWeights' in checkpoint:
-            self.sampler.setClassWeights(checkpoint['cWeights'])
+            self._minLoss = checkpoint.get("min_loss", float("inf"))
 
-        if loadComp:
-            logger.info(
-                ("Resuming from checkpoint: step {0}, min loss {1}").format(
-                    self._startStep, self._minLoss))
-        else:
-            return checkpoint
+            # Handle optimizer state if needed
+            if not self.changeOptim and "optimizer" in checkpoint:
+                try:
+                    self.model.initOptim(checkpoint["optimizer"])
+                except Exception as e:
+                    logger.warning(f"Failed to restore optimizer state: {str(e)}")
+
+            # Restore any additional state
+            if 'cWeights' in checkpoint:
+                self.sampler.setClassWeights(checkpoint['cWeights'])
+
+            if loadComp:
+                logger.info(
+                    ("Resuming from checkpoint: step {0}, min loss {1}").format(
+                        self._startStep, self._minLoss))
+            else:
+                return checkpoint
+
+        except Exception as e:
+            logger.error(f"Failed to load checkpoint from {filepath}: {str(e)}")
+            raise
   
+
     
     def _checkpoint(self):
         checkpoint_dict = {
@@ -510,29 +527,16 @@ ng
                 checkpoint_dict, False)
  
             
-    def _saveCheckpoint(self, state, isBest, filename = "checkpoint"):
+    def _saveCheckpoint(self, state, isBest, filename="checkpoint"):
         """
-        Saves snapshot of the model state to file. Will save a checkpoint
-        with name `<filename>.pth.tar` and, if this is the model's best
-        performance so far, will save the state to a `best_model.pth.tar`
-        file as well.
-
-        Models are saved in the state dictionary format. This is a more
-        stable format compared to saving the whole model (which is another
-        option supported by PyTorch). Note that we do save a number of
-        additional, Selene-specific parameters in the dictionary
-        and that the actual `model.state_dict()` is stored in the `state_dict`
-        key of the dictionary loaded by `torch.load`.
-
-        See: https://pytorch.org/docs/stable/notes/serialization.html for more
-        information about how models are saved in PyTorch.
+        Save a checkpoint of the training state.
 
         Parameters
         ----------
         state : dict
             Information about the state of the model. Note that this is
             not `model.state_dict()`, but rather, a dictionary containing
-            keys that can be used for continued training in Selene
+            keys that can be used for continued training in UAVarPrior
             _in addition_ to a key `state_dict` that contains
             `model.state_dict()`.
         isBest : bool
@@ -541,23 +545,42 @@ ng
             Default is "checkpoint". Specify the checkpoint filename. Will
             append a file extension to the end of the `filename`
             (e.g. `checkpoint.pth.tar`).
-
-        Returns
-        -------
-        None
-
         """
-        logger.debug("[TRAIN] {0}: Saving model state to file.".format(
-            state["step"]))
-        cpFilepath = os.path.join(
-            self.outputDir, filename)
-        torch.save(state, "{0}.pth.tar".format(cpFilepath))
-        if isBest:
-            bestFilepath = os.path.join(self.outputDir, "best_model")
-            shutil.copyfile("{0}.pth.tar".format(cpFilepath),
-                            "{0}.pth.tar".format(bestFilepath))
-
-    
+        try:
+            logger.debug("[TRAIN] {0}: Saving model state to file.".format(
+                state.get("step", "unknown step")))
+            
+            # Ensure state has all required fields
+            required_fields = ["state_dict", "step", "arch"]
+            missing_fields = [f for f in required_fields if f not in state]
+            if missing_fields:
+                raise ValueError(f"Missing required fields in state: {', '.join(missing_fields)}")
+            
+            # Save checkpoint
+            cpFilepath = os.path.join(self.outputDir, filename)
+            torch.save(state, f"{cpFilepath}.pth.tar")
+            
+            # Save best model if needed
+            if isBest:
+                bestFilepath = os.path.join(self.outputDir, "best_model")
+                shutil.copyfile(f"{cpFilepath}.pth.tar",
+                              f"{bestFilepath}.pth.tar")
+                logger.info("Updated best model checkpoint")
+                
+                # Save model architecture and important hyperparameters
+                config_path = os.path.join(self.outputDir, "model_config.json")
+                config = {
+                    "architecture": state["arch"],
+                    "step": state["step"],
+                    "min_loss": state.get("min_loss", None),
+                    "timestamp": datetime.now().isoformat()
+                }
+                with open(config_path, "w") as f:
+                    json.dump(config, f, indent=2)
+        
+        except Exception as e:
+            logger.error(f"Failed to save checkpoint {filename}: {str(e)}")
+            raise
     @abstractmethod
     def trainAndValidate(self):
         """
@@ -567,72 +590,83 @@ ng
 
     def evaluate(self):
         """
-        Measures the model test performance.
-
-        Returns
-        -------
-        dict
-            A dictionary, where keys are the names of the loss metrics,
-            and the values are the average value for that metric over
-            the test set.
+        Evaluates the model on the test set.
         """
-        if self._preloadTestData == True:
-            loss, predictions = self.model.validate(self._testData)
-        else:
-            losses = LossTracker()
-            predictions = []
-            allTargets = []
-            
-            if self._nTestSamples is None:
-                batchData  = self._getBatchData(mode='test')
-                while batchData != None:
-                    batchPreds, batchLoss, batchnEffTerms = self.model.batchValidate(batchData)
-                    predictions.append(batchPreds)
-                    allTargets.append(batchData['targets'])
-                    losses.add(batchLoss.item(), batchnEffTerms.item())
-                    batchData = self._getBatchData(mode='test')
-            else:
-                count = self.batchSize
-                while count < self._nTestSamples:
-                    batchData = self._getBatchData(mode='test')
-                    batchPreds, batchLoss, batchnEffTerms = self.model.batchValidate(batchData)
-                    predictions.append(batchPreds)
-                    allTargets.append(batchData['targets'])
-                    losses.add(batchLoss.item(), batchnEffTerms.item())
-                    count += self.batchSize
-                remainder = self.batchSize - (count - self._nTestSamples)
-                batchSize = self.batchSize  # Saving original batchSize
-                self.batchSize = remainder  # Changing batchSize to remainder
-                batchData = self._getBatchData(mode='test')
-                batchPreds, batchLoss, batchnEffTerms = self.model.batchValidate(batchData)
-                predictions.append(batchPreds)
-                allTargets.append(batchData['targets'])
-                losses.add(batchLoss.item(), batchnEffTerms.item())
-                self.batchSize = batchSize  # Resetting batchSize to original
-                
-    
-            predictions = np.vstack(predictions)
-            allTargets = np.vstack(allTargets)
-            self._allTestTargets = allTargets
-            loss = losses.getAveLoss()
-            
-        aveScores = self._testMetrics.update(predictions, self._allTestTargets)
-            
-        aveScores["loss"] = loss
-        for name, score in aveScores.items():
-            logger.info("test {0}: {1}".format(name, score))
+        logger.info("Start evaluating the model on test set...")
+        self.model.eval()
         
-        np.savez_compressed(os.path.join(self.outputDir, "test-predictions.npz"),
-                            data = predictions)
+        predictions = []
+        allTargets = []
+        losses = LossTracker()
 
-        perfFilepath = os.path.join(self.outputDir, "test-performance.txt")
-        scoresDict = self._testMetrics.write_feature_scores_to_file(
-            perfFilepath)
+        try:
+            with torch.no_grad():
+                if self._testData is not None:
+                    batchData = self._testData
+                    if self.useCuda:
+                        batchData = to_device(batchData, 'cuda')
+                    batchPreds, batchLoss, batchnEffTerms = self.model.batchValidate(batchData)
+                    predictions.append(batchPreds)
+                    allTargets.append(batchData['targets'])
+                    losses.add(batchLoss.item(), batchnEffTerms.item())
+                else:
+                    count = 0
+                    orig_batch_size = self.batchSize
+                    
+                    while count < self._nTestSamples:
+                        batchData = self._getBatchData(mode='test')
+                        if self.useCuda:
+                            batchData = to_device(batchData, 'cuda')
+                        batchPreds, batchLoss, batchnEffTerms = self.model.batchValidate(batchData)
+                        predictions.append(batchPreds)
+                        allTargets.append(batchData['targets'])
+                        losses.add(batchLoss.item(), batchnEffTerms.item())
+                        count += self.batchSize
 
-        self._testMetrics.visualize(
-            predictions, self._allTestTargets, self.outputDir)
+                    # Handle any remaining samples
+                    remainder_size = self._nTestSamples - count + self.batchSize
+                    if remainder_size > 0:
+                        self.batchSize = remainder_size
+                        batchData = self._getBatchData(mode='test')
+                        if self.useCuda:
+                            batchData = to_device(batchData, 'cuda')
+                        batchPreds, batchLoss, batchnEffTerms = self.model.batchValidate(batchData)
+                        predictions.append(batchPreds)
+                        allTargets.append(batchData['targets'])
+                        losses.add(batchLoss.item(), batchnEffTerms.item())
+                    
+                    # Restore original batch size
+                    self.batchSize = orig_batch_size
+                
+                predictions = torch.cat(predictions)
+                allTargets = torch.cat(allTargets)
+                loss = losses.getAveLoss()
+                
+                # Compute test metrics
+                aveScores = self._testMetrics.update(predictions, allTargets)
+                aveScores["loss"] = loss
+                
+                # Log scores
+                for name, score in aveScores.items():
+                    logger.info("test {0}: {1}".format(name, score))
+                
+                # Save predictions and performance metrics
+                np.savez_compressed(os.path.join(self.outputDir, "test-predictions.npz"),
+                                data=predictions.cpu().numpy())
 
-        return (aveScores, scoresDict)
+                perfFilepath = os.path.join(self.outputDir, "test-performance.txt")
+                scoresDict = self._testMetrics.write_feature_scores_to_file(perfFilepath)
+
+                self._testMetrics.visualize(predictions, allTargets, self.outputDir)
+
+        except Exception as e:
+            logger.error(f"Error during evaluation: {str(e)}")
+            raise
+
+        finally:
+            self.model.train()  # Return to training mode
+            
+        return scoresDict
 
 
 

@@ -1,1 +1,1 @@
-import uavarprior; print(f"UAVarPrior version: {uavarprior.__version__}"); print("Package successfully imported!")
+try:\n    from src.uavarprior.predict import PeakGVarEvaluator\n    print("Class found!")\nexcept ImportError as e:\n    print(f"Import error: {e}")

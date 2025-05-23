@@ -345,6 +345,83 @@ def initializeWrapper(className, mode, model, loss, model_built = 'pytorch', mul
                 )
     return wrapper
     
+# Helper functions for class importing to be used in execute()
+def _import_class(class_path):
+    """Helper to import a class from its string path"""
+    if class_path is None:
+        logger.debug("Class path is None, cannot import")
+        return None
+        
+    if '.' in class_path:
+        try:
+            module_path, class_name = class_path.rsplit('.', 1)
+            logger.debug(f"Importing module: {module_path}, class: {class_name}")
+            try:
+                # First try direct import
+                module = importlib.import_module(module_path)
+                return getattr(module, class_name)
+            except ImportError:
+                # Try with src. prefix if it doesn't have one
+                if not module_path.startswith('src.'):
+                    try:
+                        src_module_path = f"src.{module_path}"
+                        logger.debug(f"Direct import failed, trying with src. prefix: {src_module_path}")
+                        module = importlib.import_module(src_module_path)
+                        return getattr(module, class_name)
+                    except (ImportError, AttributeError) as e:
+                        logger.debug(f"Import with src. prefix failed: {e}")
+                return None
+            except AttributeError as e:
+                logger.debug(f"Module found but class {class_name} not found: {e}")
+                return None
+        except Exception as e:
+            logger.debug(f"Error parsing class path {class_path}: {e}")
+            return None
+    else:
+        # If no module path is specified, assume it's a class in the current module
+        logger.debug(f"No module specified, treating {class_path} as a simple class name")
+        # This is handled by _import_from_module, so return None
+        return None
+        
+def _import_from_module(module_path, class_name):
+    """Helper to import a specific class from a module"""
+    if module_path is None or class_name is None:
+        logger.debug("Module path or class name is None, cannot import")
+        return None
+        
+    logger.debug(f"Importing from module: {module_path}, class: {class_name}")
+    try:
+        # Try direct import first
+        try:
+            module = importlib.import_module(module_path)
+            class_obj = getattr(module, class_name)
+            return class_obj
+        except ImportError:
+            # If that fails, try with src. prefix if needed
+            if not module_path.startswith('src.'):
+                try:
+                    src_module_path = f"src.{module_path}"
+                    logger.debug(f"Direct import failed, trying with src. prefix: {src_module_path}")
+                    module = importlib.import_module(src_module_path)
+                    class_obj = getattr(module, class_name)
+                    return class_obj
+                except (ImportError, AttributeError) as e:
+                    logger.debug(f"Import with src. prefix failed: {e}")
+            # Try without src. prefix if it has one
+            elif module_path.startswith('src.'):
+                try:
+                    without_src_module_path = module_path[4:]  # Remove 'src.' prefix
+                    logger.debug(f"Trying without src. prefix: {without_src_module_path}")
+                    module = importlib.import_module(without_src_module_path)
+                    class_obj = getattr(module, class_name)
+                    return class_obj
+                except (ImportError, AttributeError) as e:
+                    logger.debug(f"Import without src. prefix failed: {e}")
+            return None
+    except (ImportError, AttributeError) as e:
+        logger.debug(f"Failed to import {class_name} from {module_path}: {e}")
+        return None
+
 def execute(configs):
     """
     Execute operations in _Selene_.
@@ -374,30 +451,6 @@ def execute(configs):
         If an expected key in configuration is missing.
 
     """
-    # Helper method for importing classes
-    def _import_class(class_path):
-        """Helper to import a class from its string path"""
-        if '.' in class_path:
-            module_path, class_name = class_path.rsplit('.', 1)
-            logger.debug(f"Importing module: {module_path}, class: {class_name}")
-            module = importlib.import_module(module_path)
-            return getattr(module, class_name)
-        else:
-            # If no module path is specified, assume it's a class in the current module
-            logger.debug(f"No module specified, treating {class_path} as a simple class name")
-            # This is handled by _import_from_module, so return None
-            return None
-            
-    def _import_from_module(module_path, class_name):
-        """Helper to import a specific class from a module"""
-        logger.debug(f"Importing from module: {module_path}, class: {class_name}")
-        try:
-            module = importlib.import_module(module_path)
-            class_obj = getattr(module, class_name)
-            return class_obj
-        except (ImportError, AttributeError) as e:
-            logger.debug(f"Failed to import {class_name} from {module_path}: {e}")
-            return None
 
     model = None
     modelTrainer = None
@@ -506,22 +559,57 @@ def execute(configs):
                     try:
                         # Store a copy of the original class path before popping it
                         original_class_path = analyze_seqs_info.get('class')
-                        logger.debug(f"Original class path from config: {original_class_path}")
+                        logger.info(f"Original class path from config: {original_class_path}")
+                        
+                        # CRITICAL FIX: Keep a copy of the original analyzer config before modifying
+                        original_analyze_seqs_info = analyze_seqs_info.copy()
                         
                         # Use the class name from the dict directly
                         class_path = analyze_seqs_info.pop('class', None)
-                        if not class_path and '!obj:' in str(analyze_seqs_info):
-                            # Try to extract from YAML tag if available
-                            yaml_repr = str(analyze_seqs_info)
-                            match = re.search(r'!obj:([\w\.]+)', yaml_repr)
-                            if match:
-                                class_path = match.group(1)
                         
-                        # Log the class path for debugging
-                        logger.debug(f"Extracted class path: {class_path}")
+                        # Check for '!obj:' tag pattern in the original analyzer config or in the configs
+                        if not class_path:
+                            # First try to get from the original analyzer config
+                            yaml_repr = str(original_analyze_seqs_info)
+                            logger.debug(f"Checking for !obj: tag in: {yaml_repr}")
+                            if '!obj:' in yaml_repr:
+                                # Try to extract from YAML tag if available
+                                match = re.search(r'!obj:([\w\.]+)', yaml_repr)
+                                if match:
+                                    class_path = match.group(1)
+                                    logger.info(f"Extracted class path from analyzer !obj: tag: {class_path}")
+                                else:
+                                    # If we know it's a YAML tag but couldn't extract, log more details
+                                    logger.warning(f"Found !obj: tag but couldn't extract class path. Raw config: {yaml_repr}")
+                            
+                            # If still no class_path, check the full configs
+                            if not class_path and isinstance(configs["analyzer"], str):
+                                raw_analyzer = configs["analyzer"]
+                                logger.debug(f"Checking raw analyzer string: {raw_analyzer}")
+                                match = re.search(r'!obj:([\w\.]+)', raw_analyzer)
+                                if match:
+                                    class_path = match.group(1)
+                                    logger.info(f"Extracted class path from raw config !obj: tag: {class_path}")
+                        
+                        # For PeakGVarEvaluator, check if it's a typical class name without module prefix
+                        if class_path and class_path.endswith("PeakGVarEvaluator") and "." not in class_path:
+                            logger.info(f"Detected bare PeakGVarEvaluator class name, assuming src.uavarprior.predict.seq_ana.gve.PeakGVarEvaluator")
+                            class_path = f"src.uavarprior.predict.seq_ana.gve.{class_path}"
+                        # If it's uavarprior.predict.PeakGVarEvaluator, convert to the correct path 
+                        elif class_path and "uavarprior.predict.PeakGVarEvaluator" in class_path and "seq_ana" not in class_path:
+                            new_class_path = class_path.replace("uavarprior.predict.PeakGVarEvaluator", "uavarprior.predict.seq_ana.gve.PeakGVarEvaluator")
+                            logger.info(f"Fixed class path from {class_path} to {new_class_path}")
+                            class_path = new_class_path
+                        
+                        logger.info(f"Final extracted class path: {class_path}")
                         
                         if class_path:
                             logger.info(f"Instantiating analyzer from class path: {class_path}")
+                            # Store original for error reporting
+                            original_analyzer_config = {
+                                'class': original_class_path,
+                                **analyze_seqs_info
+                            }
                             class_obj = None
                             exceptions = []
                             
@@ -533,17 +621,30 @@ def execute(configs):
                                 # Strategy 2: Try with src.uavarprior prefix
                                 lambda: _import_class(f"src.{class_path}" if not class_path.startswith('src.') else class_path),
                                 
-                                # Strategy 3: Import from predict module directly
+                                # Strategy 3: Import from predict.seq_ana.gve directly (correct path for PeakGVarEvaluator)
+                                lambda: _import_from_module("uavarprior.predict.seq_ana.gve", class_path.split('.')[-1] 
+                                                                if '.' in class_path else class_path),
+                                
+                                # Strategy 4: Import from src.uavarprior.predict.seq_ana.gve
+                                lambda: _import_from_module("src.uavarprior.predict.seq_ana.gve", class_path.split('.')[-1] 
+                                                                if '.' in class_path else class_path),
+                                
+                                # Strategy 5: Legacy - Import from predict module directly
                                 lambda: _import_from_module("uavarprior.predict", class_path.split('.')[-1] 
                                                                 if '.' in class_path else class_path),
                                 
-                                # Strategy 4: Import from src.uavarprior.predict
+                                # Strategy 6: Legacy - Import from src.uavarprior.predict
                                 lambda: _import_from_module("src.uavarprior.predict", class_path.split('.')[-1] 
                                                                 if '.' in class_path else class_path),
                                 
-                                # Strategy 5: For FuGEP compatibility - try fugep.predict
+                                # Strategy 7: For FuGEP compatibility - try fugep.predict
                                 lambda: _import_from_module("fugep.predict", class_path.split('.')[-1] 
-                                                                if '.' in class_path else class_path)
+                                                                if '.' in class_path else class_path),
+                                
+                                # Strategy 8: Try direct import without package prefix if the class has a package path
+                                lambda: (importlib.import_module(class_path.rsplit('.', 1)[0]).
+                                        __getattribute__(class_path.rsplit('.', 1)[1])
+                                        if '.' in class_path else None)
                             ]
                             
                             # Try each strategy until one works
@@ -565,11 +666,55 @@ def execute(configs):
                                 logger.error("Could not find analyzer class using any import strategy")
                                 for i, error in enumerate(exceptions):
                                     logger.error(f"  {error}")
-                                raise ValueError(f"Failed to import analyzer class '{original_class_path}'. Check if the class exists and is properly imported.")
+                                raise ValueError(f"Failed to import analyzer class '{original_class_path}'. Check if the class exists and is properly imported.\n" +
+                                                  f"Full analyzer configuration: {original_analyzer_config}")
                         else:
                             logger.error("No class path found in configuration")
-                            logger.error(f"Original analyzer configuration: {original_class_path}")
-                            raise ValueError("Could not determine analyzer class from configuration. Make sure 'class' is specified in the analyzer configuration.")
+                            logger.error(f"Original analyzer configuration: {original_analyze_seqs_info}")
+                            
+                            # Try a hard-coded default as a last-ditch effort
+                            default_class_path = "src.uavarprior.predict.seq_ana.gve.PeakGVarEvaluator"
+                            logger.info(f"Attempting to use default analyzer: {default_class_path}")
+                            
+                            try:
+                                # Try multiple import strategies for the default class with the correct paths
+                                successful_import = False
+                                for import_path in [
+                                    "src.uavarprior.predict.seq_ana.gve",
+                                    "uavarprior.predict.seq_ana.gve",
+                                    "src.uavarprior.predict",  # Legacy path
+                                    "uavarprior.predict"       # Legacy path
+                                ]:
+                                    try:
+                                        logger.debug(f"Trying to import PeakGVarEvaluator from {import_path}")
+                                        module = importlib.import_module(import_path)
+                                        if hasattr(module, "PeakGVarEvaluator"):
+                                            logger.info(f"Found PeakGVarEvaluator in {import_path}")
+                                            analyze_seqs = module.PeakGVarEvaluator(**analyze_seqs_info)
+                                            successful_import = True
+                                            break
+                                    except ImportError as e:
+                                        logger.debug(f"Could not import module {import_path}: {e}")
+                                        continue
+                                
+                                # If all direct imports failed, try one more approach with direct module import
+                                if not successful_import:
+                                    try:
+                                        logger.debug("Trying to import with direct seq_ana.__init__ approach")
+                                        from src.uavarprior.predict.seq_ana import PeakGVarEvaluator
+                                        logger.info("Found PeakGVarEvaluator with direct import")
+                                        analyze_seqs = PeakGVarEvaluator(**analyze_seqs_info)
+                                        successful_import = True
+                                    except ImportError as e:
+                                        logger.debug(f"Direct import failed: {e}")
+                                
+                                if not successful_import:
+                                    # If none of the imports worked, raise an error
+                                    raise ImportError("Could not import PeakGVarEvaluator from any known location")
+                            except Exception as e:
+                                logger.error(f"Failed to use default analyzer: {e}")
+                                logger.error("Please update your configuration to include a valid 'class' property in the 'analyzer' section")
+                                raise ValueError("Could not determine analyzer class from configuration. Make sure 'class' is specified in the analyzer configuration.")
                     except Exception as e:
                         logger.error(f"Failed to instantiate analyzer: {str(e)}")
                         raise
