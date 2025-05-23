@@ -464,6 +464,7 @@ def parse_configs_and_run(configs: Dict[str, Any]) -> None:
         data_config = configs.get("data", {})
         model_config = configs.get("model", {})
         training_config = configs.get("training", {})
+        metrics = training_config.get("metrics", [])
         
         # Initialize dataset
         logger.info("Initializing dataset...")
@@ -488,7 +489,8 @@ def parse_configs_and_run(configs: Dict[str, Any]) -> None:
             batchSize=training_config.get("batch_size", 64),
             useCuda=(device == "cuda"),
             dataParallel=training_config.get("data_parallel", False),
-            loggingVerbosity=training_config.get("logging_verbosity", 2)
+            loggingVerbosity=training_config.get("logging_verbosity", 2),
+            metrics=metrics,
         )
         
         # Run training or inference based on mode
