@@ -24,14 +24,13 @@ ext_modules = [genome_module, genomic_features_module]
 cmdclass = {'build_ext': build_ext}
 
 setup(name="uavarprior",
-      version="0.1.0-dev",
+      version="0.2.0",
       long_description=long_description,
       long_description_content_type='text/markdown',
-      description=("framework for developing sequence-level "
-                   "deep learning networks"),
-      packages=find_packages('src'),
-      package_dir={'': 'src'},
-      url="https://github.com/FunctionLab/selene",
+      description=("Uncertainty-Aware Variational Prior framework for "
+                   "deep learning sequence models"),
+      packages=find_packages(exclude=['src']),
+      url="https://github.com/FunctionLab/UAVarPrior",
       package_data={
           "uavarprior.interpret": [
               "data/gencode_v28_hg38/*",

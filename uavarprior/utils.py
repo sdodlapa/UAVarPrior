@@ -41,3 +41,44 @@ def setup_logging(level: int = logging.INFO, log_file: Optional[str] = None):
         file_handler = logging.FileHandler(log_file)
         file_handler.setFormatter(formatter)
         root_logger.addHandler(file_handler)
+
+def get_device_info():
+    """
+    Get information about available computing devices
+    
+    Returns:
+        Dictionary with device information
+    """
+    import torch
+    
+    device_info = {
+        "device": torch.device('cuda' if torch.cuda.is_available() else 'cpu'),
+        "cuda_available": torch.cuda.is_available(),
+        "cuda_device_count": torch.cuda.device_count() if torch.cuda.is_available() else 0,
+    }
+    
+    if torch.cuda.is_available():
+        device_info["cuda_device_name"] = torch.cuda.get_device_name(0)
+        device_info["cuda_device_cap"] = torch.cuda.get_device_capability(0)
+    
+    return device_info
+
+def set_random_seed(seed: int):
+    """
+    Set random seed for reproducibility
+    
+    Args:
+        seed: Random seed value
+    """
+    import random
+    import numpy as np
+    import torch
+    
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed(seed)
+        torch.cuda.manual_seed_all(seed)
+        
+    return True

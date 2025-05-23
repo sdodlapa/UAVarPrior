@@ -4,6 +4,43 @@
 Model interface for UAVarPrior.
 
 This module defines the base interface that all UAVarPrior models should implement.
+
+When creating a custom model for UAVarPrior, you should:
+1. Create a class that extends ModelInterface
+2. Implement all required methods
+3. Register your model in the factory system
+
+Example implementation:
+```python
+class MyCustomModel(ModelInterface):
+    def __init__(self, backbone, loss_fn, optimizer=None):
+        self.backbone = backbone
+        self.loss_fn = loss_fn
+        self.optimizer = optimizer
+        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        self.backbone.to(self.device)
+        
+    def forward(self, x):
+        return self.backbone(x)
+        
+    # Implement all other required methods
+```
+
+Then, create a module that provides factory functions:
+```python
+# In your_model_module.py
+def get_model(**args):
+    # Create and return your PyTorch model
+    return YourBackboneModel(**args)
+    
+def criterion(**args):
+    # Create and return your loss function
+    return YourLossFunction(**args)
+    
+def get_optimizer(lr):
+    # Return optimizer class and arguments
+    return (torch.optim.Adam, {'lr': lr, 'weight_decay': 1e-4})
+```
 """
 from abc import ABC, abstractmethod
 import torch
@@ -12,6 +49,15 @@ from typing import Dict, Any, Optional, Union
 class ModelInterface(ABC):
     """
     Base interface for all UAVarPrior models
+    
+    This abstract class defines the interface that all models in UAVarPrior
+    must implement. It provides a consistent API for training, evaluation,
+    prediction, and model saving/loading.
+    
+    Implementation note:
+    - All models must have a 'backbone' attribute containing the PyTorch nn.Module
+    - All models must handle device placement (CPU/GPU)
+    - All models must implement serialization methods
     """
     
     @abstractmethod
