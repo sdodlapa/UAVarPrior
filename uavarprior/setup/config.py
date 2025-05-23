@@ -576,3 +576,16 @@ def _construct_mapping(node, deep=False):
         value = constructor.construct_object(value_node, deep=False)
         mapping[key] = value
     return mapping
+
+
+# allow '!obj:' tags to be parsed as plain mappings or scalars
+# this avoids ConstructorError when encountering model class tags
+
+def _obj_constructor(loader, tag_suffix, node):
+    if isinstance(node, yaml.MappingNode):
+        return loader.construct_mapping(node)
+    if isinstance(node, yaml.SequenceNode):
+        return loader.construct_sequence(node)
+    return loader.construct_scalar(node)
+
+yaml.SafeLoader.add_multi_constructor('!obj:', _obj_constructor)

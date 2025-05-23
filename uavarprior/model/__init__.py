@@ -26,6 +26,8 @@ __all__ = ['NonStrandSpecific',
            'loadModelFromFile']
 
 import importlib
+from typing import Dict, Any
+
 def loadNnModule(className):
     '''
     Load network module by class name
@@ -56,3 +58,20 @@ def loadWrapperModule(className):
         return importlib.import_module('uavarprior.model.wrappers.uni_seq')
     else:
         raise ValueError("Unrecognized model wrapper class {0}".format(className))
+
+
+def get_model(config: Dict[str, Any]):
+    """Factory function for model instantiation (moved from uavarprior/models)."""
+    model_name = config.get("name")
+    if not model_name:
+        raise ValueError("Model name not specified in configuration")
+    module_path = f"uavarprior.model.nn.{model_name}"
+    try:
+        module = importlib.import_module(module_path)
+    except ImportError as e:
+        raise ValueError(f"Model module not found: {model_name}") from e
+    try:
+        model_class = getattr(module, "Model")
+    except AttributeError:
+        raise ValueError(f"Model class not found in module: {model_name}")
+    return model_class(**config)

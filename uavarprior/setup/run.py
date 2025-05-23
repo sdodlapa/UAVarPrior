@@ -30,7 +30,7 @@ import logging
 from typing import Dict, Any
 import torch
 
-from uavarprior.models import get_model
+from uavarprior.model import get_model
 # Commented out missing imports to fix compatibility issues
 # Original import: from uavarprior.data import get_dataset, get_dataloader
 # Fixed import: changed training to train and Trainer to StandardSGDTrainer
