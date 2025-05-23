@@ -474,23 +474,15 @@ def parse_configs_and_run(configs: Dict[str, Any]) -> None:
         dataset = None  # Placeholder until get_dataset is implemented
         dataloader = None  # Placeholder until get_dataloader is implemented
         
-        # Initialize model
-        logger.info(f"Initializing model: {model_config.get('name', 'unknown')}")
-        net = get_model(model_config)
-        net.to(device)
-        # wrap network in the specified wrapper (provides optimizer API)
-        wrapper = initializeWrapper(
-            model_config['wrapper'],
-            mode='train',
-            model=net,
-            lossCalculator=None,
-            model_built=model_config.get('built', 'pytorch'),
-            mult_predictions=model_config.get('mult_predictions', 1),
-            useCuda=(device == 'cuda'),
-            optimizerClass=None,
-            optimizerKwargs=None
+        # Initialize and wrap model (handles network, loss, optimizer, wrapper)
+        logger.info(f"Initializing model wrapper: {model_config.get('name', 'unknown')}")
+        # initialize_model returns a wrapper with getOptimizer, setOptimizer, etc.
+        model = initialize_model(
+            model_config,
+            train=True,
+            lr=configs.get('lr'),
+            configs=configs
         )
-        model = wrapper
 
         # Setup training
         logger.info("Setting up training...")
