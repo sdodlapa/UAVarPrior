@@ -480,7 +480,7 @@ def parse_configs_and_run(configs: Dict[str, Any]) -> None:
         model = initialize_model(
             model_config,
             train=True,
-            lr=configs.get('lr'),
+            lr=training_config.get('lr'),
             configs=configs
         )
 
