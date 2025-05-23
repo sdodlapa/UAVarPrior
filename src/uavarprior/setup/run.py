@@ -204,12 +204,23 @@ def initialize_model(model_configs, train=True, lr=None, configs=None):
 
         # optimizer for training
         optim_class, optim_kwargs = None, None
-        if train and isinstance(lr, float):
-            optim_class, optim_kwargs = module.get_optimizer(lr)
-        elif train:
-            raise ValueError("Learning rate must be specified as a float "
-                             "but was {0}".format(lr))
-
+        if train:
+            if isinstance(lr, float):
+                optim_class, optim_kwargs = module.get_optimizer(lr)
+            elif lr is not None:
+                # Try to convert lr to float if possible
+                try:
+                    lr_float = float(lr)
+                    optim_class, optim_kwargs = module.get_optimizer(lr_float)
+                except (ValueError, TypeError):
+                    raise ValueError("Learning rate must be convertible to a float "
+                                     f"but was {lr} of type {type(lr).__name__}")
+            else:
+                # If we're in training mode but no learning rate provided, this is an error
+                raise ValueError("Learning rate must be specified for training mode")
+        # elif train:
+        #     # This branch should never be reached with our new changes above
+        #     optim_class, optim_kwargs = module.get_optimizer(lr)
     # elif model_configs["built"] == 'tensorflow':
     #     model_class_name = model_configs["class"]
     #     # model_built_name = model_configs["built"]
@@ -456,6 +467,11 @@ def parse_configs_and_run(configs: Dict[str, Any]) -> None:
         configs: Dictionary containing configuration parameters
     """
     try:
+        # Check if this is a legacy FuGEP-style config and handle accordingly
+        if "ops" in configs and "sampler" in configs and not configs.get("sampler", {}).get("uavarprior", False):
+            logger.info("Detected FuGEP-style configuration format. Using backward compatibility mode.")
+            return execute(configs)
+            
         # Check for CUDA availability and set device
         device = "cuda" if torch.cuda.is_available() else "cpu"
         logger.info(f"Using device: {device}")
@@ -468,15 +484,31 @@ def parse_configs_and_run(configs: Dict[str, Any]) -> None:
         # Output directory
         output_dir = configs.get("output_dir", None)
 
-         # Initialize sampler as data source and loader
+        # Initialize sampler as data source and loader
         logger.info("Initializing sampler")
         sampler_info = configs.get("sampler")
-        if sampler_info is None:
-            raise ValueError("Sampler configuration is missing in 'sampler'")
-        sampler = instantiate(sampler_info)
         
-        # Initialize and wrap model (handles network, loss, optimizer, wrapper)
-        logger.info(f"Initializing model wrapper: {model_config.get('name', 'unknown')}")
+        # Debug logging to see what's in the configs
+        logger.debug(f"Available config keys: {list(configs.keys())}")
+        if not sampler_info:
+            # Check if this is coming from the old-style configuration
+            if "ops" in configs:
+                ops = configs.get("ops", [])
+                if any(op in ops for op in ["train", "evaluate", "analyze"]):
+                    logger.warning(f"Found 'ops' with operations {ops} but no 'sampler' - using legacy configuration format.")
+                    logger.info("Using execute() function for backward compatibility")
+                    return execute(configs)
+                else:
+                    logger.debug(f"Found 'ops' but with unknown operations: {ops}")
+            
+            # If it's not a clear legacy config but has analyzer section, it's likely an analyze-only config
+            if "analyzer" in configs and "variant_effect_prediction" in configs:
+                logger.info("Detected analyze-only configuration. Using execute() function.")
+                return execute(configs)
+                
+            # If we get here, the config doesn't have a valid structure
+            raise ValueError("Invalid configuration: Missing 'sampler' key and not a recognized legacy format. Check your YAML structure.")
+        sampler = instantiate(sampler_info)
         
         # Get learning rate and ensure it's a float
         lr_value = training_config.get('lr')

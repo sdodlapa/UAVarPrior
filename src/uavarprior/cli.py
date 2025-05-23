@@ -35,19 +35,40 @@ def cli(verbose: int, cuda_blocking: bool):
 @cli.command()
 @click.argument('config_path', type=click.Path(exists=True, file_okay=True, dir_okay=False))
 @click.option('--override', '-o', multiple=True, help='Override config parameters: -o section.param=value')
-def run(config_path: str, override: Optional[tuple]):
+@click.option('--debug', is_flag=True, help='Enable debug mode with detailed error tracking')
+def run(config_path: str, override: Optional[tuple], debug: bool):
     """Run model training or inference using the specified configuration file."""
-    configs = load_path(config_path, instantiate=False)
-    
-    # Apply command line overrides to configuration
-    if override:
-        for o in override:
-            if '=' in o:
-                param_path, value = o.split('=', 1)
-                # Implement nested dictionary traversal and value setting
-                _apply_override(configs, param_path, value)
-    
-    parse_configs_and_run(configs)
+    try:
+        logging.info(f"Loading configuration from {config_path}")
+        configs = load_path(config_path, instantiate=False)
+        
+        # Basic validation of the loaded configuration
+        if not isinstance(configs, dict):
+            raise ValueError(f"Configuration from {config_path} did not load as a dictionary")
+        
+        logging.debug(f"Configuration loaded with keys: {list(configs.keys())}")
+        
+        # Apply command line overrides to configuration
+        if override:
+            for o in override:
+                if '=' in o:
+                    param_path, value = o.split('=', 1)
+                    # Implement nested dictionary traversal and value setting
+                    _apply_override(configs, param_path, value)
+                    logging.info(f"Applied override: {param_path}={value}")
+        
+        # Add debug flag to configs if specified
+        if debug:
+            configs["debug"] = True
+        
+        # Run with loaded configuration
+        parse_configs_and_run(configs)
+    except Exception as e:
+        logging.error(f"Error running with config {config_path}: {str(e)}")
+        if debug:
+            import traceback
+            traceback.print_exc()
+        raise
 
 @cli.command()
 @click.argument('config_path', type=click.Path(exists=True, file_okay=True, dir_okay=False))
