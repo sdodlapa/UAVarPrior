@@ -12,12 +12,12 @@ with open(os.path.join(os.path.dirname(__file__), "README.md"),
 
 genome_module = Extension(
     "uavarprior.data.sequences._sequence",
-    ["uavarprior/data/sequences/_sequence.pyx"],
+    ["src/uavarprior/data/sequences/_sequence.pyx"],
     include_dirs=[np.get_include()])
 
 genomic_features_module = Extension(
     "uavarprior.data.targets._genomic_features",
-    ["uavarprior/data/targets/_genomic_features.pyx"],
+    ["src/uavarprior/data/targets/_genomic_features.pyx"],
     include_dirs=[np.get_include()])
 
 ext_modules = [genome_module, genomic_features_module]
