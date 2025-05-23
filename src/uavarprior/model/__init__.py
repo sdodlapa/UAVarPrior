@@ -73,5 +73,9 @@ def get_model(config: Dict[str, Any]):
     try:
         model_class = getattr(module, "Model")
     except AttributeError:
-        raise ValueError(f"Model class not found in module: {model_name}")
+        # Fallback to class named after the model
+        if hasattr(module, model_name):
+            model_class = getattr(module, model_name)
+        else:
+            raise ValueError(f"Model class not found in module: {model_name}")
     return model_class(**config)
