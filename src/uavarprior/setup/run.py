@@ -212,8 +212,10 @@ def initialize_model(model_configs, train=True, lr=None, configs=None):
                 # Try to convert lr to float if possible
                 try:
                     lr_float = float(lr)
+                    logger.info(f"Converting learning rate from {type(lr).__name__} ({lr}) to float ({lr_float})")
                     optim_class, optim_kwargs = module.get_optimizer(lr_float)
                 except (ValueError, TypeError):
+                    logger.error(f"Failed to convert learning rate value: {lr} (type: {type(lr).__name__})")
                     raise ValueError("Learning rate must be convertible to a float "
                                      f"but was {lr} of type {type(lr).__name__}")
             else:
@@ -372,6 +374,31 @@ def execute(configs):
         If an expected key in configuration is missing.
 
     """
+    # Helper method for importing classes
+    def _import_class(class_path):
+        """Helper to import a class from its string path"""
+        if '.' in class_path:
+            module_path, class_name = class_path.rsplit('.', 1)
+            logger.debug(f"Importing module: {module_path}, class: {class_name}")
+            module = importlib.import_module(module_path)
+            return getattr(module, class_name)
+        else:
+            # If no module path is specified, assume it's a class in the current module
+            logger.debug(f"No module specified, treating {class_path} as a simple class name")
+            # This is handled by _import_from_module, so return None
+            return None
+            
+    def _import_from_module(module_path, class_name):
+        """Helper to import a specific class from a module"""
+        logger.debug(f"Importing from module: {module_path}, class: {class_name}")
+        try:
+            module = importlib.import_module(module_path)
+            class_obj = getattr(module, class_name)
+            return class_obj
+        except (ImportError, AttributeError) as e:
+            logger.debug(f"Failed to import {class_name} from {module_path}: {e}")
+            return None
+
     model = None
     modelTrainer = None
     output_dir = configs['output_dir']
@@ -477,6 +504,10 @@ def execute(configs):
                         analyze_seqs_info['outputDir'] = output_dir
                     # Now instantiate the class directly
                     try:
+                        # Store a copy of the original class path before popping it
+                        original_class_path = analyze_seqs_info.get('class')
+                        logger.debug(f"Original class path from config: {original_class_path}")
+                        
                         # Use the class name from the dict directly
                         class_path = analyze_seqs_info.pop('class', None)
                         if not class_path and '!obj:' in str(analyze_seqs_info):
@@ -486,14 +517,59 @@ def execute(configs):
                             if match:
                                 class_path = match.group(1)
                         
+                        # Log the class path for debugging
+                        logger.debug(f"Extracted class path: {class_path}")
+                        
                         if class_path:
                             logger.info(f"Instantiating analyzer from class path: {class_path}")
-                            module_path, class_name = class_path.rsplit('.', 1)
-                            module = importlib.import_module(module_path)
-                            class_obj = getattr(module, class_name)
-                            analyze_seqs = class_obj(**analyze_seqs_info)
+                            class_obj = None
+                            exceptions = []
+                            
+                            # Try multiple import strategies in order
+                            import_strategies = [
+                                # Strategy 1: Direct import as specified
+                                lambda: _import_class(class_path),
+                                
+                                # Strategy 2: Try with src.uavarprior prefix
+                                lambda: _import_class(f"src.{class_path}" if not class_path.startswith('src.') else class_path),
+                                
+                                # Strategy 3: Import from predict module directly
+                                lambda: _import_from_module("uavarprior.predict", class_path.split('.')[-1] 
+                                                                if '.' in class_path else class_path),
+                                
+                                # Strategy 4: Import from src.uavarprior.predict
+                                lambda: _import_from_module("src.uavarprior.predict", class_path.split('.')[-1] 
+                                                                if '.' in class_path else class_path),
+                                
+                                # Strategy 5: For FuGEP compatibility - try fugep.predict
+                                lambda: _import_from_module("fugep.predict", class_path.split('.')[-1] 
+                                                                if '.' in class_path else class_path)
+                            ]
+                            
+                            # Try each strategy until one works
+                            for i, strategy in enumerate(import_strategies):
+                                try:
+                                    logger.debug(f"Trying import strategy {i+1}")
+                                    class_obj = strategy()
+                                    if class_obj:
+                                        logger.info(f"Successfully found class {class_obj.__name__} using strategy {i+1}")
+                                        break
+                                except Exception as e:
+                                    exceptions.append(f"Strategy {i+1} failed: {str(e)}")
+                                    continue
+                            
+                            if class_obj:
+                                logger.info(f"Successfully found class: {class_obj.__name__}")
+                                analyze_seqs = class_obj(**analyze_seqs_info)
+                            else:
+                                logger.error("Could not find analyzer class using any import strategy")
+                                for i, error in enumerate(exceptions):
+                                    logger.error(f"  {error}")
+                                raise ValueError(f"Failed to import analyzer class '{original_class_path}'. Check if the class exists and is properly imported.")
                         else:
-                            raise ValueError("Could not determine analyzer class from configuration")
+                            logger.error("No class path found in configuration")
+                            logger.error(f"Original analyzer configuration: {original_class_path}")
+                            raise ValueError("Could not determine analyzer class from configuration. Make sure 'class' is specified in the analyzer configuration.")
                     except Exception as e:
                         logger.error(f"Failed to instantiate analyzer: {str(e)}")
                         raise
@@ -528,12 +604,21 @@ def parse_configs_and_run(configs: Dict[str, Any]) -> None:
         # Add import re if needed
         import re
         
-        # Check if this is a legacy FuGEP-style config and handle accordingly
+        # Enhanced detection of configuration formats
+        # Check if this is a legacy FuGEP-style config with ops key
         if "ops" in configs:
-            # This is a legacy configuration format
             ops = configs.get("ops", [])
             logger.info(f"Detected legacy configuration format with operations: {ops}")
             return execute(configs)
+            
+        # Check if it's an analyze-only configuration without ops
+        if ("analyzer" in configs and ("variant_effect_prediction" in configs or 
+                                     "in_silico_mutagenesis" in configs or
+                                     "prediction" in configs)):
+            logger.info("Detected analyze-only configuration without 'ops' key. Adding ops=['analyze'].")
+            temp_configs = configs.copy()
+            temp_configs["ops"] = ["analyze"]
+            return execute(temp_configs)
             
         # Check for CUDA availability and set device
         device = "cuda" if torch.cuda.is_available() else "cpu"
