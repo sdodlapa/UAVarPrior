@@ -19,6 +19,19 @@ IS_INITIALIZED = False
 _BaseProxy = namedtuple("_BaseProxy", ["callable", "positionals", "keywords",
                                      "yaml_src"])
 
+class _Proxy(_BaseProxy):
+    """
+    Helper class for object instantiation from YAML.
+    """
+    __slots__ = ()
+
+    def __new__(cls, callable=None, positionals=None, keywords=None, yaml_src=None):
+        if positionals is None:
+            positionals = ()
+        if keywords is None:
+            keywords = {}
+        return super(_Proxy, cls).__new__(cls, callable, positionals, keywords, yaml_src)
+
 
 class _Proxy(_BaseProxy):
     """An intermediate representation between initial YAML parse and
@@ -137,6 +150,18 @@ def instantiate(proxy, bindings=None):
     """
     if bindings is None:
         bindings = {}
+    if isinstance(proxy, _Proxy):
+        return _instantiate_proxy_tuple(proxy, bindings)
+    elif isinstance(proxy, dict):
+        # Recurse on the keys too, for backward compatibility.
+        # Is the key instantiation feature ever actually used, by anyone?
+        return dict((instantiate(k, bindings), instantiate(v, bindings))
+                    for k, v in six.iteritems(proxy))
+    elif isinstance(proxy, list):
+        return [instantiate(v, bindings) for v in proxy]
+    # In the future it might be good to consider a dict argument that provides
+    # a type->callable mapping for arbitrary transformations like this.
+    return proxy
     if isinstance(proxy, _Proxy):
         return _instantiate_proxy_tuple(proxy, bindings)
     elif isinstance(proxy, dict):
