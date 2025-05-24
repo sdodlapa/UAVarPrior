@@ -25,8 +25,8 @@ try:
     from uavarprior.utils import setup_logging
 except ImportError:
     # Fallback to local imports if package imports fail
-    from src.uavarprior.utils.logging import setup_logging
-    from src.uavarprior.setup import load_path, parse_configs_and_run
+    from uavarprior.utils.logging import setup_logging
+    from uavarprior.setup import load_path, parse_configs_and_run
     __version__ = "0.1.0"  # Default version if not available
 
 @click.group()

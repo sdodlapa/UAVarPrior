@@ -15,7 +15,7 @@ import random
 import numpy as np
 import inspect
 
-import torchinfo
+# import torchinfo  # Temporarily commented out
 import torch.multiprocessing as mp
 
 # from tensorflow.keras.models import Model
