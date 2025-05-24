@@ -214,7 +214,7 @@ class PeakGVarEvaluator(GVarEvaluator):
             for r in self._reporters:
                 if r.needs_base_pred:
                     if self._save_mult_pred:
-                        r.handle_batch_mult_predictions_temp(altOutputs, batchIds, refOutputs)
+                        r.handle_batch_mult_predictions(altOutputs, batchIds, refOutputs)
                         # r.handle_batch_mult_predictions(altOutputs, batchIds, refOutputs)
                     else:
                         r.handle_batch_mult_predictions(altOutputs, batchIds, refOutputs)
