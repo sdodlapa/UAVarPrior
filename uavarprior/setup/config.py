@@ -111,7 +111,7 @@ def _instantiate_proxy_tuple(proxy, bindings=None):
     return obj
 
 
-def load_path(path: str, instantiate_obj: bool = False) -> Dict[str, Any]:
+def load_path(path: str, instantiate_obj: bool = False, **kwargs) -> Dict[str, Any]:
     """
     Load YAML configuration from path
     
@@ -122,6 +122,10 @@ def load_path(path: str, instantiate_obj: bool = False) -> Dict[str, Any]:
     Returns:
         Configuration dictionary
     """
+    # For backwards compatibility, allow 'instantiate' parameter
+    if 'instantiate' in kwargs:
+        instantiate_obj = kwargs['instantiate']
+        
     with open(path, 'r') as f:
         config = yaml.safe_load(f)
     

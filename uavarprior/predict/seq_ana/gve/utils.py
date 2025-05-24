@@ -5,7 +5,7 @@ Note
 This is originated from Selene's _variant_effect_prediction.py
 """
 
-from fugep.data.utils import formatChrom 
+from uavarprior.data.utils import formatChrom 
 
 
 VCF_REQUIRED_COLS = ["#CHROM", "POS", "ID", "REF", "ALT"]
