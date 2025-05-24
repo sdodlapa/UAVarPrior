@@ -29,15 +29,13 @@ setup(name="uavarprior",
       long_description_content_type='text/markdown',
       description=("Uncertainty-Aware Variational Prior framework for "
                    "deep learning sequence models"),
-      packages=find_packages(exclude=['src']),
+      packages=find_packages(where='src'),
+      package_dir={'': 'src'},
       url="https://github.com/FunctionLab/UAVarPrior",
       package_data={
           "uavarprior.interpret": [
               "data/gencode_v28_hg38/*",
               "data/gencode_v28_hg19/*"
-          ],
-          "uavarprior.sequences": [
-              "data/*"
           ]
       },
       classifiers=[
@@ -55,17 +53,19 @@ setup(name="uavarprior",
           "numpy>=1.19.0",
           "pandas>=1.3.0",
           "torchinfo",
-          "plotly",
-          "pyfaidx",
+          "plotly>=5.0.0",
+          "pyfaidx>=0.7.0",
           "pytabix",
           "pyyaml>=5.1",
           "scikit-learn>=1.0.0",
           "scipy>=1.7.0",
-          "seaborn",
-          "statsmodels",
+          "seaborn>=0.11.0",
+          "statsmodels>=0.13.0",
           "torch>=1.10.0",
+          "tensorflow>=2.9.0",
           "bioPython>=1.73",
           "pydantic>=1.9.0",
+          "jinja2>=3.0.0",
       ],
       entry_points={
           'console_scripts': [
