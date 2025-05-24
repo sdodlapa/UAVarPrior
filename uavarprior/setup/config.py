@@ -162,15 +162,3 @@ def instantiate(proxy, bindings=None):
     # In the future it might be good to consider a dict argument that provides
     # a type->callable mapping for arbitrary transformations like this.
     return proxy
-    if isinstance(proxy, _Proxy):
-        return _instantiate_proxy_tuple(proxy, bindings)
-    elif isinstance(proxy, dict):
-        # Recurse on the keys too, for backward compatibility.
-        # Is the key instantiation feature ever actually used, by anyone?
-        return dict((instantiate(k, bindings), instantiate(v, bindings))
-                    for k, v in six.iteritems(proxy))
-    elif isinstance(proxy, list):
-        return [instantiate(v, bindings) for v in proxy]
-    # In the future it might be good to consider a dict argument that provides
-    # a type->callable mapping for arbitrary transformations like this.
-    return proxy
