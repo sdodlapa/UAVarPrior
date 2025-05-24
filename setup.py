@@ -31,7 +31,7 @@ setup(name="uavarprior",
                    "deep learning sequence models"),
       packages=find_packages(where='src'),
       package_dir={'': 'src'},
-      url="https://github.com/FunctionLab/UAVarPrior",
+      url="https://github.com/sdodl001/UAVarPrior",
       package_data={
           "uavarprior.interpret": [
               "data/gencode_v28_hg38/*",
