@@ -1,7 +1,7 @@
 '''
 Created on May 28, 2021
 
-@author: Sanjeeva Reddy Dodlapati
+@author: jsun
 '''
 
 import numpy as np
@@ -16,7 +16,7 @@ from .utils import _mutationId
 from ....data import Genome
 from curses.ascii import isdigit
 
-logger = logging.getLogger("uavarprior")
+logger = logging.getLogger("fugep")
 
 class PeakISMSeqAnalyzer(ISMSeqAnalyzer):
     '''
