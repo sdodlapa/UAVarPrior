@@ -34,3 +34,26 @@ outputs/
 .Spotlight-V100
 .Trashes
 Thumbs.db
+
+# Genomics-specific files
+# Genomics-specific
+*.vcf
+*.vcf.gz
+*.bam
+*.bam.bai
+*.sam
+*.fasta
+*.fa
+*.fastq
+*.fq
+*.bed
+*.gff
+*.gtf
+*.wig
+*.bigwig
+*.bw
+
+# Large data files
+*.hdf5
+*.h5
+*.npz
