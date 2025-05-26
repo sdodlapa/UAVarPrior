@@ -1,0 +1,54 @@
+---
+ops: [analyze]
+model: {
+#    path: /Users/sanjeev/Downloads/Repos/TransMet/examples/model/dna, # there is no need to specify path for built-in networks under nn pacakge
+    class: Sei, #CnnL3h128, #SeqCnnL2h128,
+    dna_wlen: 1001,
+    output_names: ['E067', 'E068', 'E069', 'E070', 'E071', 'E072', 'E073', 'E074', 'E081', 'E082'],
+#    class: DeepSEA,
+    classArgs: {  # DeeperDeepSEA.__init__ inputs
+#        sequence_length: 1001,
+#        n_targets: 1,
+        l1_decay: 0.0001,
+        l2_decay: 0.0001,
+        dropout: 0.4,
+        batch_norm: False,
+    },
+    built: tensorflow, #pytorch or tensorflow
+    mult_predictions: 3,
+    wrapper: UniSeqMWrapper,
+#    non_strand_specific: mean,
+}
+analyzer: !obj:fugep.predict.MethylVarEvaluator {
+    analysis: [predictions], # diffs, abs_diffs, logits, predictions,
+    refSeq: !obj:fugep.data.Genome {
+        input_path: /Users/sanjeev/Downloads/debug/GRCh38/ensembl/Homo_sapiens.GRCh38.dna.primary_assembly.fa
+    },
+#    genAssembly: ncbi,
+#    vcfFile: /Users/sanjeev/Downloads/debug/fugep/data/samp_vcf_1k.tsv,
+#    cpgFile: /Users/sanjeev/Downloads/debug/fugep/data/refCpGHumGRCh38.tsv,
+    vcfFile: /Users/sanjeev/Downloads/debug/fugep/data/chr21_vcf_0_19.tsv,
+#    vcfFile: /Users/sanjeev/Downloads/debug/fugep/data/samp_vcf_0_100.tsv,
+    cpgFile: /Users/sanjeev/Downloads/debug/fugep/data/refCpGHumChr21.tsv,
+    strandIdx: 5,
+    seqLen: 1001,
+    batchSize: 16,
+    useCuda: False,
+    dataParallel: True,
+    loggingVerbosity: 0,
+    writeMemLimit: 0.5, # in MB
+    save_mult_pred: True,
+    outputFormat: tsv, #tsv or hdf5
+#    trainedModelPath: /Users/sanjeev/Downloads/debug/fugep/model/dna-met/best_model.pth.tar,
+    trainedModelPath: /Users/sanjeev/Downloads/Repos/TransMet/examples/model/d4,
+#    model_built: tensorflow,
+    features: !obj:fugep.utils.load_features_list {
+        input_path: /Users/sanjeev/Downloads/debug/fugep/model/dna-met/all-features.txt
+    },
+
+}
+variant_effect_prediction: {}
+output_dir: /Users/sanjeev/Downloads/debug/fugep/gve/temp
+random_seed: 1447 # seed torch
+create_subdirectory: False
+...

@@ -1,0 +1,20 @@
+ops: [analyze]  # Use legacy format with ops list containing analyze operation
+
+model:
+  class: Sei
+  classArgs:
+    sequence_length: 4096
+    n_targets: 21907
+  built: pytorch
+  mult_predictions: 5
+  wrapper: UniSeqMWrapper
+  non_strand_specific: mean
+
+analyzer: !obj:fugep.predict.PeakGVarEvaluator  # Try with FuGEP instead
+  analysis:
+    - mean_gve
+  trainedModelPath: /home/sdodl001/sei-framework/sei.pth
+
+variant_effect_prediction: {}  # Needed to trigger variant effect prediction in the analyze branch
+output_dir: /tmp/test-analyze-output  # Use a temporary directory for testing
+random_seed: 1447

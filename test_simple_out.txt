@@ -1,1 +1,0 @@
-ERROR: cannot import name 'initialize_logger' from 'uavarprior.utils' (/home/sdodl001/UAVarPrior/uavarprior/utils/__init__.py)
