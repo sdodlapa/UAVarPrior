@@ -1,0 +1,213 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.4.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-added-large-files
+  - repo: https://github.com/psf/black
+    rev: 22.10.0
+    hooks:
+      - id: black
+  - repo: https://github.com/pycqa/isort
+    rev: 5.10.1
+    hooks:
+      - id: isort
+EOF
+                endif
+            end
+        endif
+        
+        log_info "Setting up automated README updates..."
+        if (! $dry_run) then
+            cat > github_automation/core_scripts/update_readmes.py << 'EOF'
+#!/usr/bin/env python3
+"""Automated README.md maintenance"""
+
+import os
+import re
+from datetime import datetime
+from pathlib import Path
+
+class ReadmeUpdater:
+    def __init__(self, repo_path):
+        self.repo_path = Path(repo_path)
+        self.readme_path = self.repo_path / "README.md"
+        
+    def update_badges(self):
+        """Update status badges in README."""
+        if not self.readme_path.exists():
+            return False
+            
+        repo_name = self.repo_path.name
+        badges = f"""
+[![CI](https://github.com/sdodl001/{repo_name}/workflows/CI/badge.svg)](https://github.com/sdodl001/{repo_name}/actions)
+[![Coverage](https://codecov.io/gh/sdodl001/{repo_name}/branch/main/graph/badge.svg)](https://codecov.io/gh/sdodl001/{repo_name})
+[![Python](https://img.shields.io/badge/python-3.8%2B-blue.svg)](https://www.python.org/downloads/)
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+
+"""
+        
+        content = self.readme_path.read_text()
+        
+        # Remove existing badges
+        content = re.sub(r'\[\!\[.*?\]\(.*?\)\]\(.*?\)\s*\n*', '', content)
+        
+        # Add new badges at the top after title
+        lines = content.split('\n')
+        if lines and lines[0].startswith('#'):
+            lines.insert(1, badges)
+            content = '\n'.join(lines)
+        else:
+            content = badges + content
+            
+        self.readme_path.write_text(content)
+        return True
+        
+    def update_last_modified(self):
+        """Update last modified date."""
+        if not self.readme_path.exists():
+            return False
+            
+        content = self.readme_path.read_text()
+        today = datetime.now().strftime("%Y-%m-%d")
+        
+        # Add or update last modified line
+        pattern = r'Last updated: \d{4}-\d{2}-\d{2}'
+        replacement = f'Last updated: {today}'
+        
+        if re.search(pattern, content):
+            content = re.sub(pattern, replacement, content)
+        else:
+            content += f'\n\n---\nLast updated: {today}\n'
+            
+        self.readme_path.write_text(content)
+        return True
+
+if __name__ == "__main__":
+    import sys
+    if len(sys.argv) != 2:
+        print("Usage: update_readmes.py <repo_path>")
+        sys.exit(1)
+        
+    updater = ReadmeUpdater(sys.argv[1])
+    updater.update_badges()
+    updater.update_last_modified()
+    print("README updated successfully")
+EOF
+            chmod +x github_automation/core_scripts/update_readmes.py
+        endif
+        
+        log_success "Quick wins implementation complete"
+        breaksw
+        
+    case "commits":
+        echo "📝 SETTING UP CONVENTIONAL COMMITS"
+        echo "=================================="
+        
+        log_info "Installing conventional commit tools..."
+        if (! $dry_run) then
+            foreach repo (UAVarPrior FuGEP GenomicLightning TransMet)
+                if (-d $repo) then
+                    cd /home/sdodl001/$repo
+                    
+                    # Create commit message template
+                    cat > .gitmessage << 'EOF'
+# <type>[optional scope]: <description>
+#
+# [optional body]
+#
+# [optional footer(s)]
+#
+# Types: feat, fix, docs, style, refactor, test, chore
+# Example: feat(parser): add ability to parse arrays
+EOF
+                    
+                    # Set the commit template
+                    git config commit.template .gitmessage
+                endif
+            end
+        endif
+        
+        log_success "Conventional commits setup complete"
+        breaksw
+        
+    case "summary":
+        echo "📊 IMPLEMENTATION STATUS SUMMARY"
+        echo "================================"
+        
+        # Check which components are implemented
+        echo "Infrastructure Status:"
+        if (-d github_automation/core_scripts) then
+            echo "  ✅ Core scripts directory"
+        else
+            echo "  ❌ Core scripts directory"
+        endif
+        
+        if (-d github_automation/configs) then
+            echo "  ✅ Configuration directory"
+        else
+            echo "  ❌ Configuration directory"
+        endif
+        
+        echo ""
+        echo "Repository Status:"
+        foreach repo (UAVarPrior FuGEP GenomicLightning TransMet)
+            if (-d $repo/.github/workflows) then
+                echo "  ✅ $repo: CI/CD workflows configured"
+            else
+                echo "  ❌ $repo: No CI/CD workflows"
+            endif
+        end
+        
+        echo ""
+        echo "Feature Status:"
+        if (-f github_automation/core_scripts/repo_health_monitor.py) then
+            echo "  ✅ Repository health monitoring"
+        else
+            echo "  ❌ Repository health monitoring"
+        endif
+        
+        if (-f github_automation/core_scripts/security_checker.py) then
+            echo "  ✅ Security automation"
+        else
+            echo "  ❌ Security automation"
+        endif
+        
+        breaksw
+        
+    case "complete":
+        echo "🎯 RUNNING COMPLETE IMPLEMENTATION"
+        echo "================================="
+        
+        log_info "Running full implementation sequence..."
+        
+        # Run all phases in sequence
+        if (! $dry_run) then
+            $0 init --verbose
+            $0 phase3 --verbose  
+            $0 phase4 --verbose
+            $0 phase5 --verbose
+            $0 quick-wins --verbose
+            $0 commits --verbose
+        else
+            echo "Would run: init -> phase3 -> phase4 -> phase5 -> quick-wins -> commits"
+        endif
+        
+        echo ""
+        $0 summary
+        
+        log_success "Complete implementation finished"
+        breaksw
+        
+    default:
+        log_error "Unknown command: $command"
+        echo "Use --help for usage information"
+        exit 1
+        breaksw
+endsw
+
+echo ""
+echo "🎉 Implementation Manager completed successfully!"
+echo "Next steps: Run '$script_name summary' to see status"
