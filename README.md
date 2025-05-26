@@ -10,11 +10,23 @@ UAVarPrior is a framework for incorporating uncertainty-aware variational priors
 - **Command-line Interface**: Intuitive CLI for training, evaluation, and inference
 - **Modern Model Architecture**: Clean abstraction between model interfaces and implementations
 
+## 🔗 Multi-Account Repository Access
+
+This repository is synchronized across multiple GitHub accounts for enhanced collaboration and backup:
+
+- **Primary**: [SanjeevaRDodlapati/UAVarPrior](https://github.com/SanjeevaRDodlapati/UAVarPrior)
+- **Mirror 1**: [sdodlapati3/UAVarPrior](https://github.com/sdodlapati3/UAVarPrior)
+- **Mirror 2**: [sdodlapa/UAVarPrior](https://github.com/sdodlapa/UAVarPrior)
+
+All repositories are kept in perfect sync. Clone from any account you have access to.
+
 ## Installation
 
 ```bash
-# Clone the repository
-git clone https://github.com/yourusername/UAVarPrior.git
+# Clone from any of the synchronized repositories
+git clone git@github.com:SanjeevaRDodlapati/UAVarPrior.git
+# OR: git clone git@github.com:sdodlapati3/UAVarPrior.git
+# OR: git clone git@github.com:sdodlapa/UAVarPrior.git
 cd UAVarPrior
 
 # Regular installation
@@ -156,3 +168,80 @@ Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for gui
 ## License
 
 This project is licensed under the terms of the license included in the repository.
+
+## 🚀 Multi-Account Development Workflow
+
+### For Contributors and Maintainers
+
+This repository uses an advanced multi-account synchronization system for enhanced collaboration:
+
+#### Quick Development Workflow
+
+```bash
+# 1. Make your changes
+git add .
+git commit -m "Your descriptive commit message"
+
+# 2. Push to all accounts simultaneously (if you have maintainer access)
+./push_all.csh
+
+# 3. Your changes are now live on all three GitHub accounts!
+```
+
+#### Setting Up Multi-Account Access (Maintainers Only)
+
+If you're a maintainer with access to multiple accounts:
+
+```bash
+# The repository includes automated push scripts
+# Individual repo push: ./push_all.csh (pushes to all 3 accounts)
+# Global push: ~/push_all_repos.csh (pushes all genomic repos)
+```
+
+#### For External Contributors
+
+```bash
+# Fork any of the synchronized repositories
+# Work on your fork normally
+# Submit PRs to the primary repository (SanjeevaRDodlapati/UAVarPrior)
+```
+
+### Repository Synchronization Details
+
+- **Automatic Sync**: All commits are automatically synchronized across accounts
+- **Branch Consistency**: All repositories use `main` as the primary branch
+- **Real-time Updates**: Changes appear on all accounts within seconds
+- **Admin Access**: Full administrative privileges across all synchronized accounts
+
+### 🔧 SSH Authentication Setup
+
+For seamless multi-account access, maintainers use SSH key-based authentication:
+
+```bash
+# Test connections (maintainers only)
+ssh -T github-sanjeevar    # Tests SanjeevaRDodlapati access
+ssh -T github-sdodlapati3  # Tests sdodlapati3 access  
+ssh -T github-sdodlapa     # Tests sdodlapa access
+```
+
+### 🤝 Collaboration Guidelines
+
+1. **Pull Requests**: Submit PRs to the primary repository (SanjeevaRDodlapati)
+2. **Issues**: Report issues on any of the synchronized repositories
+3. **Discussions**: Use GitHub Discussions on the primary repository
+4. **Releases**: Releases are synchronized across all accounts
+
+### 🛡️ Security & Branch Protection
+
+All repositories have branch protection enabled:
+- Require pull request reviews before merging
+- Prevent direct pushes to `main` (except for maintainers)
+- Automatic security scanning and dependency alerts
+- Protection against large file uploads and force pushes
+
+### 📊 Repository Health
+
+- **CI/CD**: Automated testing via GitHub Actions
+- **Code Quality**: Automated linting and formatting checks
+- **Security**: Dependabot alerts and vulnerability scanning
+- **Documentation**: Automatically updated across all accounts
