@@ -1,3 +1,4 @@
+cd 0
 #!/usr/bin/env python3
 """
 Generate changelog entries for UAVarPrior releases.
