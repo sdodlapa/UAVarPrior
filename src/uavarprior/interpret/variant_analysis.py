@@ -24,6 +24,14 @@ from typing import Dict, List, Set, Tuple, Union, Optional
 from collections import Counter
 import datetime
 
+# Optional visualization imports
+try:
+    import matplotlib.pyplot as plt
+    import seaborn as sns
+    VISUALIZATION_AVAILABLE = True
+except ImportError:
+    VISUALIZATION_AVAILABLE = False
+
 
 # MAF extraction and classification
 def extract_maf_regex(info_str: str) -> Optional[float]:
@@ -78,6 +86,134 @@ def load_maf_data(file_path: str) -> pd.DataFrame:
     df_maf['category'] = df_maf['maf'].apply(classify_maf)
     df_maf.dropna(inplace=True, ignore_index=True)
     return df_maf
+
+
+# Testing and Validation functions
+def validate_jaccard_similarity(
+    similarity_matrix: sparse.csr_matrix,
+    profile_i: int,
+    profile_j: int,
+    verbose: bool = True
+) -> Dict[str, float]:
+    """
+    Validate Jaccard similarity calculation for a specific pair of profiles.
+    
+    Args:
+        similarity_matrix: Profile similarity matrix (profiles × profiles)
+        profile_i: Index of first profile
+        profile_j: Index of second profile
+        verbose: If True, print detailed validation information
+        
+    Returns:
+        Dict[str, float]: Dictionary containing validation metrics
+        
+    Example:
+        >>> # Validate Jaccard for profiles 0 and 1
+        >>> metrics = validate_jaccard_similarity(sim_matrix, 0, 1)
+        >>> print(f"Jaccard similarity: {metrics['jaccard']:.4f}")
+    """
+    # Extract values
+    common_variants = similarity_matrix[profile_i, profile_j]
+    variants_i = similarity_matrix[profile_i, profile_i]
+    variants_j = similarity_matrix[profile_j, profile_j]
+    
+    # Calculate Jaccard similarity
+    union_size = variants_i + variants_j - common_variants
+    jaccard = common_variants / union_size if union_size > 0 else 0
+    
+    # Calculate additional metrics for validation
+    overlap_coefficient = common_variants / min(variants_i, variants_j) if min(variants_i, variants_j) > 0 else 0
+    dice_coefficient = (2 * common_variants) / (variants_i + variants_j) if (variants_i + variants_j) > 0 else 0
+    
+    metrics = {
+        'common_variants': float(common_variants),
+        'variants_profile_i': float(variants_i),
+        'variants_profile_j': float(variants_j),
+        'union_size': float(union_size),
+        'jaccard': float(jaccard),
+        'overlap_coefficient': float(overlap_coefficient),
+        'dice_coefficient': float(dice_coefficient)
+    }
+    
+    if verbose:
+        print(f"Profile Similarity Validation:")
+        print(f"  Profile {profile_i} variants: {variants_i}")
+        print(f"  Profile {profile_j} variants: {variants_j}")
+        print(f"  Common variants: {common_variants}")
+        print(f"  Union size: {union_size}")
+        print(f"  Jaccard similarity: {jaccard:.6f}")
+        print(f"  Overlap coefficient: {overlap_coefficient:.6f}")
+        print(f"  Dice coefficient: {dice_coefficient:.6f}")
+        
+        # Validation checks
+        if jaccard < 0 or jaccard > 1:
+            print(f"  ⚠️  WARNING: Jaccard similarity {jaccard:.6f} is outside [0,1] range!")
+        if common_variants > min(variants_i, variants_j):
+            print(f"  ⚠️  WARNING: Common variants ({common_variants}) > min individual variants!")
+        if union_size < max(variants_i, variants_j):
+            print(f"  ⚠️  WARNING: Union size ({union_size}) < max individual variants!")
+    
+    return metrics
+
+
+def test_jaccard_calculations(
+    similarity_matrix: sparse.csr_matrix,
+    files: List[str],
+    num_samples: int = 5
+) -> bool:
+    """
+    Test Jaccard similarity calculations on a sample of profile pairs.
+    
+    Args:
+        similarity_matrix: Profile similarity matrix (profiles × profiles)
+        files: List of file names
+        num_samples: Number of random pairs to test
+        
+    Returns:
+        bool: True if all tests pass, False if any issues found
+    """
+    print(f"Testing Jaccard similarity calculations on {num_samples} random pairs...")
+    
+    n_profiles = similarity_matrix.shape[0]
+    all_tests_passed = True
+    
+    # Test diagonal elements (self-similarity should be 1.0)
+    print("\n1. Testing diagonal elements (self-similarity):")
+    for i in range(min(3, n_profiles)):
+        metrics = validate_jaccard_similarity(similarity_matrix, i, i, verbose=False)
+        expected_jaccard = 1.0
+        if abs(metrics['jaccard'] - expected_jaccard) > 1e-10:
+            print(f"  ❌ Profile {i} self-similarity: {metrics['jaccard']:.6f} (expected: 1.0)")
+            all_tests_passed = False
+        else:
+            print(f"  ✅ Profile {i} self-similarity: {metrics['jaccard']:.6f}")
+    
+    # Test random pairs
+    print(f"\n2. Testing {num_samples} random profile pairs:")
+    np.random.seed(42)  # For reproducible results
+    for test_idx in range(num_samples):
+        i, j = np.random.choice(n_profiles, 2, replace=False)
+        print(f"\n  Test {test_idx + 1}: Profiles {i} ({files[i]}) and {j} ({files[j]})")
+        
+        try:
+            metrics = validate_jaccard_similarity(similarity_matrix, i, j, verbose=True)
+            
+            # Validation checks
+            if metrics['jaccard'] < 0 or metrics['jaccard'] > 1:
+                print(f"    ❌ Invalid Jaccard range")
+                all_tests_passed = False
+            elif metrics['common_variants'] > min(metrics['variants_profile_i'], metrics['variants_profile_j']):
+                print(f"    ❌ Common variants exceed minimum")
+                all_tests_passed = False
+            else:
+                print(f"    ✅ Valid Jaccard calculation")
+                
+        except Exception as e:
+            print(f"    ❌ Error in calculation: {e}")
+            all_tests_passed = False
+    
+    print(f"\n{'✅ All tests passed!' if all_tests_passed else '❌ Some tests failed!'}")
+    return all_tests_passed
 
 
 # Variant collection functions
@@ -618,10 +754,12 @@ def calculate_profile_similarity_matrix(
                 f.write("Profile1,Profile2,CommonVariants,Profile1_TotalVariants,Profile2_TotalVariants,JaccardSimilarity\n")
                 for idx in top_indices:
                     i, j = rows[idx], cols[idx]
-                    common = similarity_matrix[i, j]
+                    common = values[idx]  # Use the pre-extracted value instead of matrix access
                     variants_i = similarity_matrix[i, i]
                     variants_j = similarity_matrix[j, j]
-                    jaccard = common / (variants_i + variants_j - common) if common > 0 else 0
+                    # Fixed Jaccard calculation with proper denominator check
+                    denominator = variants_i + variants_j - common
+                    jaccard = common / denominator if denominator > 0 else 0
                     f.write(f"{files[i]},{files[j]},{common},{variants_i},{variants_j},{jaccard:.6f}\n")
             print(f"Saved top 100 most similar profile pairs to: {csv_path}")
     
