@@ -737,7 +737,7 @@ def calculate_profile_similarity_matrix(
             pickle.dump(files, f)
         print(f"Saved profile names to: {files_file}")
         
-        # Optionally save the top N most similar pairs
+        # Save similarity data for all pairs and top N pairs
         if verbose:
             # Extract upper triangular part of the matrix (excluding diagonal)
             rows, cols = similarity_matrix.nonzero()
@@ -745,22 +745,36 @@ def calculate_profile_similarity_matrix(
             rows, cols = rows[mask], cols[mask]
             values = similarity_matrix.data[mask]
             
-            # Sort by similarity value in descending order
+            # Create data for all pairs with Jaccard similarity calculation
+            all_pairs_data = []
+            for idx in range(len(rows)):
+                i, j = rows[idx], cols[idx]
+                common = values[idx]
+                variants_i = similarity_matrix[i, i]
+                variants_j = similarity_matrix[j, j]
+                # Fixed Jaccard calculation with proper denominator check
+                denominator = variants_i + variants_j - common
+                jaccard = common / denominator if denominator > 0 else 0
+                all_pairs_data.append((files[i], files[j], common, variants_i, variants_j, jaccard))
+            
+            # Save all pairs to CSV
+            all_csv_path = os.path.join(output_dir, f'all_profile_similarities_{pred_model}_group_{group}.csv')
+            with open(all_csv_path, 'w') as f:
+                f.write("Profile1,Profile2,CommonVariants,Profile1_TotalVariants,Profile2_TotalVariants,JaccardSimilarity\n")
+                for data in all_pairs_data:
+                    f.write(f"{data[0]},{data[1]},{data[2]},{data[3]},{data[4]},{data[5]:.6f}\n")
+            print(f"Saved all {len(all_pairs_data)} profile pair similarities to: {all_csv_path}")
+            
+            # Sort by similarity value in descending order for top pairs
             top_indices = np.argsort(-values)[:100]  # Top 100 most similar pairs
             
             # Create a CSV file with the top pairs
-            csv_path = os.path.join(output_dir, f'top_similar_profiles_{pred_model}_group_{group}.csv')
+            csv_path = os.path.join(output_dir, f'top_100_similar_profiles_{pred_model}_group_{group}.csv')
             with open(csv_path, 'w') as f:
                 f.write("Profile1,Profile2,CommonVariants,Profile1_TotalVariants,Profile2_TotalVariants,JaccardSimilarity\n")
                 for idx in top_indices:
-                    i, j = rows[idx], cols[idx]
-                    common = values[idx]  # Use the pre-extracted value instead of matrix access
-                    variants_i = similarity_matrix[i, i]
-                    variants_j = similarity_matrix[j, j]
-                    # Fixed Jaccard calculation with proper denominator check
-                    denominator = variants_i + variants_j - common
-                    jaccard = common / denominator if denominator > 0 else 0
-                    f.write(f"{files[i]},{files[j]},{common},{variants_i},{variants_j},{jaccard:.6f}\n")
+                    profile_data = all_pairs_data[idx]
+                    f.write(f"{profile_data[0]},{profile_data[1]},{profile_data[2]},{profile_data[3]},{profile_data[4]},{profile_data[5]:.6f}\n")
             print(f"Saved top 100 most similar profile pairs to: {csv_path}")
     
     return similarity_matrix
